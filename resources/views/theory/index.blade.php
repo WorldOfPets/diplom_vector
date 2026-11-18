@@ -12,6 +12,12 @@
         <span class="chip shrink-0">{{ $readIds->count() }}/{{ $articles->count() }} прочитано</span>
     </div>
 
+    <div class="mt-4 flex flex-wrap gap-2">
+        @foreach(['Модели ЭИ', 'Эмоции и тело', 'Дневник', 'Регуляция', 'Эмпатия', 'Коммуникация', 'Стресс', 'Решения', 'Измерения', 'Этика'] as $topic)
+            <span class="chip">{{ $topic }}</span>
+        @endforeach
+    </div>
+
     @if($articles->isEmpty())
         <x-empty-state icon="book" title="Материалов пока нет" :text="tone('theory.index.empty')" class="mt-8">
             <a href="{{ route('modules.index') }}" class="btn-primary px-4 py-2.5 text-xs">К модулям</a>

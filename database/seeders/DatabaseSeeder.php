@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             ModuleSeeder::class,
             EmotionSeeder::class,
             TheorySeeder::class,
+            TheoryExtendedSeeder::class,
             TestSeeder::class,
             TrainerSeeder::class,
             TrainerWave2Seeder::class,

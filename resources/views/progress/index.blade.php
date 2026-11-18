@@ -55,7 +55,7 @@
         </div>
     </section>
 
-    <section class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         @foreach($summary['categories'] as $category)
             <div class="card p-4">
                 <div class="flex items-start justify-between gap-2">

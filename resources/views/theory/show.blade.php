@@ -65,11 +65,14 @@
                         <span class="text-white/70" x-show="!completed">Просмотрено: <span x-text="percent"></span>%</span>
                         <span class="text-mint" x-show="!completed">Нужно 80%</span>
                         <span class="text-mint" x-show="completed" x-cloak>✓ видео просмотрено</span>
-                        <span class="text-white/50" x-show="!completed">Просмотр засчитывается после 80%</span>
+                        <span class="text-white/50" x-show="!completed">Засчитывается после 80% и только со звуком</span>
                     </div>
                     <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15" x-show="!completed">
                         <div class="h-full rounded-full bg-brand transition-[width] duration-300" :style="`width: ${percent}%`"></div>
                     </div>
+                    <p class="mt-2 text-[10px] font-bold text-amber-200" x-show="!soundOn && !completed" x-cloak>
+                        Звук выключен: прогресс не засчитывается. Включите звук в плеере.
+                    </p>
                 </div>
             </div>
         @elseif($localVideo)
@@ -92,6 +95,7 @@
                         @if($localPoster) poster="{{ asset($localPoster) }}" @endif
                         aria-label="{{ $article->title }}"
                         @timeupdate="onTimeUpdate($event)"
+                        @volumechange="onVolumeChange($event)"
                         @seeking="lastTime = null"
                     >
                         <source src="{{ asset($localVideo) }}" type="{{ $article->localVideoMime() }}">
@@ -102,11 +106,14 @@
                         <span class="text-white/70" x-show="!completed">Просмотрено: <span x-text="percent"></span>%</span>
                         <span class="text-mint" x-show="!completed">Нужно 80%</span>
                         <span class="text-mint" x-show="completed" x-cloak>✓ видео просмотрено</span>
-                        <span class="text-white/50" x-show="!completed">Просмотр засчитывается после 80%</span>
+                        <span class="text-white/50" x-show="!completed">Засчитывается после 80% и только со звуком</span>
                     </div>
                     <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15" x-show="!completed">
                         <div class="h-full rounded-full bg-brand transition-[width] duration-300" :style="`width: ${percent}%`"></div>
                     </div>
+                    <p class="mt-2 text-[10px] font-bold text-amber-200" x-show="!soundOn && !completed" x-cloak>
+                        Звук выключен: прогресс не засчитывается. Включите звук в плеере.
+                    </p>
                 </div>
             </div>
         @elseif($article->video_url)

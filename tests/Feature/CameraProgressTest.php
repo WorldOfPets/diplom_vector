@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\CameraProgress;
 use App\Models\Group;
 use App\Models\Module;
 use App\Models\Trainer;
 use App\Models\TrainerAttempt;
 use App\Models\User;
+use App\Services\ContentProgressService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -102,10 +104,19 @@ class CameraProgressTest extends TestCase
                 'done' => true,
             ]);
 
+        $this->assertSame(2, CameraProgress::query()->where('user_id', $user->id)->count());
+
+        $mimic = collect(app(ContentProgressService::class)->summary($user)['categories'])->firstWhere('key', 'mimic');
+
+        $this->assertSame(2, $mimic['done']);
+        $this->assertSame(7, $mimic['total']);
+
         $this->actingAs($user)
             ->postJson(route('camera.submit'))
             ->assertOk()
             ->assertJsonStructure(['redirect']);
+
+        $this->assertSame(2, CameraProgress::query()->where('user_id', $user->id)->count());
 
         $attempt = TrainerAttempt::query()->firstOrFail();
 

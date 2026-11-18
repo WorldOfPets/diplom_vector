@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CameraProgress;
 use App\Models\Trainer;
 use App\Models\TrainerAttempt;
 use App\Services\ContentProgressService;
@@ -25,16 +26,20 @@ class CameraController extends Controller
             ->latest('completed_at')
             ->first();
 
-        $progress = $request->session()->get($this->progressKey($request->user()->id, $trainer->id), []);
+        $progress = CameraProgress::query()
+            ->where('user_id', $request->user()->id)
+            ->get()
+            ->keyBy('emotion');
+
         $targetIds = collect($trainer->config['targets'] ?? [])->pluck('id')->all();
-        $completedTargets = array_values(array_intersect($targetIds, array_keys($progress)));
+        $completedTargets = array_values(array_intersect($targetIds, $progress->keys()->all()));
 
         return view('camera.show', [
             'trainer' => $trainer,
             'completed' => $completed,
             'hasConsent' => $request->user()->camera_consent_at !== null,
             'completedTargets' => $completedTargets,
-            'progress' => $progress,
+            'progress' => $progress->all(),
         ]);
     }
 
@@ -77,18 +82,33 @@ class CameraController extends Controller
         abort_if((float) $data['confidence'] < $threshold, 422, 'Недостаточная уверенность модели.');
         abort_if((int) $data['duration_ms'] < 1500, 422, 'Слишком короткое удержание выражения.');
 
-        $key = $this->progressKey($request->user()->id, $trainer->id);
-        $progress = $request->session()->get($key, []);
-        $progress[$data['target']] = [
-            'confidence' => (float) $data['confidence'],
-            'duration_ms' => (int) $data['duration_ms'],
-            'attempts' => (int) $data['attempts'],
-            'completed_at' => now()->toIso8601String(),
-        ];
-        $request->session()->put($key, $progress);
+        $existing = CameraProgress::query()
+            ->where('user_id', $request->user()->id)
+            ->where('emotion', $data['target'])
+            ->first();
 
-        $completed = array_values(array_intersect($targetIds, array_keys($progress)));
+        CameraProgress::query()->updateOrCreate(
+            [
+                'user_id' => $request->user()->id,
+                'emotion' => $data['target'],
+            ],
+            [
+                'confidence' => max((float) ($existing?->confidence ?? 0), (float) $data['confidence']),
+                'duration_ms' => max((int) ($existing?->duration_ms ?? 0), (int) $data['duration_ms']),
+                'attempts' => max((int) ($existing?->attempts ?? 1), (int) $data['attempts']),
+                'completed_at' => $existing?->completed_at ?? now(),
+            ],
+        );
+
+        $completed = CameraProgress::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('emotion', $targetIds)
+            ->pluck('emotion')
+            ->all();
+
         $total = count($targetIds);
+
+        app(ContentProgressService::class)->sync($request->user());
 
         return response()->json([
             'completed' => $completed,
@@ -105,14 +125,45 @@ class CameraController extends Controller
 
         $trainer = $this->cameraTrainer();
         $targetIds = collect($trainer->config['targets'] ?? [])->pluck('id')->all();
-        $key = $this->progressKey($request->user()->id, $trainer->id);
-        $progress = $request->session()->get($key, []);
-        $completed = array_values(array_intersect($targetIds, array_keys($progress)));
+
+        $rows = CameraProgress::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('emotion', $targetIds)
+            ->get()
+            ->keyBy('emotion');
+
+        $completed = array_values(array_intersect($targetIds, $rows->keys()->all()));
 
         if ($targetIds === [] || count($completed) < count($targetIds)) {
             return response()->json([
                 'message' => 'Сначала пройдите все эмоции практикума.',
             ], 422);
+        }
+
+        $existingAttempt = TrainerAttempt::query()
+            ->where('user_id', $request->user()->id)
+            ->where('trainer_id', $trainer->id)
+            ->where('status', 'completed')
+            ->latest('completed_at')
+            ->first();
+
+        if ($existingAttempt !== null) {
+            return response()->json([
+                'redirect' => route('trainers.result', $existingAttempt),
+            ]);
+        }
+
+        $progress = [];
+
+        foreach ($completed as $emotion) {
+            $row = $rows->get($emotion);
+
+            $progress[$emotion] = [
+                'confidence' => (float) ($row?->confidence ?? 0),
+                'duration_ms' => (int) ($row?->duration_ms ?? 0),
+                'attempts' => (int) ($row?->attempts ?? 1),
+                'completed_at' => $row?->completed_at?->toIso8601String(),
+            ];
         }
 
         $data = [
@@ -126,7 +177,7 @@ class CameraController extends Controller
         $result = app(CameraEngine::class)->score($trainer->config ?? [], $data);
         $threshold = (float) ($trainer->settings['threshold'] ?? 80);
 
-        $attempt = DB::transaction(function () use ($request, $trainer, $data, $result, $threshold, $key): TrainerAttempt {
+        $attempt = DB::transaction(function () use ($request, $trainer, $data, $result, $threshold): TrainerAttempt {
             $durationMs = (int) ($data['duration_ms'] ?? 0);
 
             $attempt = TrainerAttempt::query()->create([
@@ -157,8 +208,6 @@ class CameraController extends Controller
                 }
             }
 
-            $request->session()->forget($key);
-
             return $attempt;
         });
 
@@ -179,10 +228,5 @@ class CameraController extends Controller
         abort_unless($trainer->engine === 'camera', 404);
 
         return $trainer;
-    }
-
-    private function progressKey(int $userId, int $trainerId): string
-    {
-        return 'camera.progress.'.$userId.'.'.$trainerId;
     }
 }

@@ -61,6 +61,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <span class="chip"><x-icon name="flame" class="h-3.5 w-3.5 text-coral" /> {{ $entriesCount }} {{ \App\Support\Text::plural($entriesCount, 'запись', 'записи', 'записей') }}</span>
+            <span class="chip"><x-icon name="target" class="h-3.5 w-3.5 text-mint-ink" /> {{ $practiceDays }}/7 дней практики</span>
             <span class="chip"><x-icon name="shield" class="h-3.5 w-3.5 text-mint-ink" /> шифруется · видно только вам</span>
             <a href="{{ route('profile.index') }}" class="btn-secondary px-4 py-2.5 text-xs">{{ tone('common.profile') }}</a>
         </div>
@@ -77,6 +78,7 @@
                     <div>
                         <p class="section-eyebrow">Новая запись</p>
                         <h2 class="mt-1 text-lg font-extrabold">{{ tone('diary.index.form_title') }}</h2>
+                        <p class="mt-1 text-[10px] leading-relaxed text-muted">В прогресс идёт один день практики, даже если записей несколько. Нужно 7 разных дней.</p>
                     </div>
                     <span class="text-[11px] font-semibold text-muted">{{ now()->translatedFormat('j F') }}</span>
                 </div>

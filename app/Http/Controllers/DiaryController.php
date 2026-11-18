@@ -6,6 +6,7 @@ use App\Models\DiaryEntry;
 use App\Models\Emotion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DiaryController extends Controller
@@ -66,6 +67,10 @@ class DiaryController extends Controller
             'chart' => $chart,
             'emotionCounts' => $emotionCounts,
             'entriesCount' => DiaryEntry::query()->where('user_id', $user->id)->count(),
+            'practiceDays' => min(7, DiaryEntry::query()
+                ->where('user_id', $user->id)
+                ->distinct()
+                ->count(DB::raw('date(created_at)'))),
         ]);
     }
 

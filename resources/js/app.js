@@ -129,7 +129,39 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('shortsFeed', (options) => ({
+        count: Number(options.count ?? 0),
+        active: 0,
+
+        onScroll() {
+            const feed = this.$refs.feed;
+
+            if (!feed?.clientHeight) {
+                return;
+            }
+
+            this.active = Math.max(0, Math.min(this.count - 1, Math.round(feed.scrollTop / feed.clientHeight)));
+        },
+
+        go(index) {
+            const feed = this.$refs.feed;
+
+            if (!feed) {
+                return;
+            }
+
+            const target = Math.max(0, Math.min(this.count - 1, index));
+
+            feed.scrollTo({
+                top: target * feed.clientHeight,
+                behavior: 'smooth',
+            });
+        },
+    }));
+
     Alpine.data('shortCard', (options) => ({
+        id: options.id,
+        index: Number(options.index ?? 0),
         liked: Boolean(options.liked),
         likes: Number(options.likes ?? 0),
         viewed: Boolean(options.viewed),
@@ -144,41 +176,50 @@ document.addEventListener('alpine:init', () => {
         watched: 0,
         lastTime: null,
         observer: null,
+        onOtherPlay: null,
 
         init() {
             if (this.viewed) {
                 this.progress = 100;
             }
 
-            if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-                return;
-            }
+            this.onOtherPlay = (event) => {
+                if (event.detail?.id !== this.id) {
+                    this.pause();
+                }
+            };
 
-            if (window.matchMedia?.('(min-width: 640px)').matches) {
-                return;
-            }
+            window.addEventListener('short-playing', this.onOtherPlay);
 
             if (!('IntersectionObserver' in window)) {
                 return;
             }
 
             this.$nextTick(() => {
+                const feed = this.$el.closest('[data-shorts-feed]');
+
                 this.observer = new IntersectionObserver((entries) => {
                     entries.forEach((entry) => {
                         if (entry.isIntersecting) {
+                            window.dispatchEvent(new CustomEvent('short-active', {
+                                detail: { id: this.id, index: this.index },
+                            }));
+
+                            if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+                                return;
+                            }
+
                             this.play();
                         } else {
                             this.pause();
                         }
                     });
-                }, { threshold: 0.65 });
+                }, {
+                    root: feed instanceof HTMLElement ? feed : null,
+                    threshold: 0.65,
+                });
 
                 this.observer.observe(this.$el);
-
-                const rect = this.$el.getBoundingClientRect();
-                if (rect.top < window.innerHeight && rect.bottom > 0) {
-                    this.play();
-                }
             });
         },
 
@@ -187,6 +228,10 @@ document.addEventListener('alpine:init', () => {
             if (!video) {
                 return;
             }
+
+            window.dispatchEvent(new CustomEvent('short-playing', {
+                detail: { id: this.id },
+            }));
 
             video.muted = this.muted;
 
@@ -311,6 +356,10 @@ document.addEventListener('alpine:init', () => {
 
         destroy() {
             this.observer?.disconnect();
+
+            if (this.onOtherPlay) {
+                window.removeEventListener('short-playing', this.onOtherPlay);
+            }
         },
     }));
 
@@ -321,6 +370,7 @@ document.addEventListener('alpine:init', () => {
         watched: 0,
         lastTime: null,
         saving: false,
+        soundOn: true,
         handler: null,
         url: options.url,
         csrf: options.csrf,
@@ -372,7 +422,34 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            if (message.type === 'player:mute') {
+                this.soundOn = false;
+                this.lastTime = null;
+
+                return;
+            }
+
+            if (message.type === 'player:unmute') {
+                this.soundOn = true;
+
+                return;
+            }
+
             if (message.type === 'player:currentTime') {
+                const muted = message.data?.muted;
+                const volume = Number(message.data?.volume);
+
+                if (muted === true || (Number.isFinite(volume) && volume === 0)) {
+                    this.soundOn = false;
+                    this.lastTime = null;
+
+                    return;
+                }
+
+                if (muted === false || (Number.isFinite(volume) && volume > 0)) {
+                    this.soundOn = true;
+                }
+
                 this.accumulate(Number(message.data?.time));
 
                 return;
@@ -445,8 +522,17 @@ document.addEventListener('alpine:init', () => {
         watched: 0,
         lastTime: null,
         saving: false,
+        soundOn: true,
         url: options.url,
         csrf: options.csrf,
+
+        onVolumeChange(event) {
+            this.soundOn = !event.target.muted && event.target.volume > 0;
+
+            if (!this.soundOn) {
+                this.lastTime = null;
+            }
+        },
 
         onTimeUpdate(event) {
             if (this.completed) {
@@ -459,6 +545,14 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            if (video.muted || video.volume === 0) {
+                this.soundOn = false;
+                this.lastTime = null;
+
+                return;
+            }
+
+            this.soundOn = true;
             const time = video.currentTime;
 
             if (this.lastTime !== null) {

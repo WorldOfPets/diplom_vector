@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\CameraProgress;
 use App\Models\Certificate;
+use App\Models\DiaryEntry;
 use App\Models\Feedback;
 use App\Models\ProgressSnapshot;
 use App\Models\Short;
@@ -14,6 +16,7 @@ use App\Models\TheoryProgress;
 use App\Models\Trainer;
 use App\Models\TrainerAttempt;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class ContentProgressService
 {
@@ -34,6 +37,7 @@ class ContentProgressService
     {
         $trainerIds = Trainer::query()
             ->where('is_published', true)
+            ->where('engine', '!=', 'camera')
             ->whereHas('module', fn ($query) => $query->where('is_published', true))
             ->pluck('id');
 
@@ -76,10 +80,22 @@ class ContentProgressService
             ->distinct()
             ->count('short_id');
 
+        $diaryDays = DiaryEntry::query()
+            ->where('user_id', $user->id)
+            ->distinct()
+            ->count(DB::raw('date(created_at)'));
+
+        $mimicDone = CameraProgress::query()
+            ->where('user_id', $user->id)
+            ->distinct()
+            ->count('emotion');
+
         $categories = [
             $this->category('shorts', 'Просмотрено', 'мини-видео', $shortsDone, $shortIds->count(), 'var(--color-coral-ink)', 'play'),
             $this->category('theory', 'Изучено', 'статьи теории', $theoryDone, $theoryIds->count(), 'var(--color-amber-ink)', 'book'),
-            $this->category('trainers', 'Пройдено', 'тренажёры', $trainersDone, $trainerIds->count(), 'var(--color-brand-deep)', 'sparkles'),
+            $this->category('diary', 'Дневник', 'дней практики', min(7, $diaryDays), 7, 'var(--color-mint-ink)', 'calendar'),
+            $this->category('trainers', 'Пройдено', 'тренажёры (кроме «Мимики»)', $trainersDone, $trainerIds->count(), 'var(--color-brand-deep)', 'sparkles'),
+            $this->category('mimic', 'Мимика', 'эмоций', min(7, $mimicDone), 7, 'var(--color-lilac-ink)', 'camera'),
             $this->category('tests', 'Диагностировано', 'тесты и кейсы', $testsDone, $testIds->count(), 'var(--color-lilac-ink)', 'chart'),
         ];
 

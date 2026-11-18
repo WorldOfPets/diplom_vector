@@ -83,7 +83,7 @@
                         <strong class="text-ink">{{ number_format((float) $certificate->percent, 1, ',', ' ') }}%</strong> программы.
                     </p>
 
-                    <div class="mx-auto mt-7 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div class="mx-auto mt-7 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-3">
                         @foreach($certificateCategories as $category)
                             <div class="rounded-2xl border border-line/70 bg-paper/50 px-3 py-3">
                                 <p class="text-lg font-extrabold" style="color: {{ $category['color'] }};">{{ $category['done'] }}/{{ $category['total'] }}</p>

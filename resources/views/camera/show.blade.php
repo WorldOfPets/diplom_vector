@@ -68,6 +68,7 @@
                     <div class="mt-4 flex flex-wrap gap-2">
                         <span class="chip"><x-icon name="shield" class="h-3 w-3 text-mint-ink" /> кадры не уходят на сервер</span>
                         <span class="chip">7 мимических паттернов</span>
+                        <span class="chip">1 эмоция = 1 единица прогресса</span>
                         <span class="chip">порог модели 80%</span>
                     </div>
                 </div>
@@ -107,7 +108,7 @@
                         <div class="mt-3 h-2 overflow-hidden rounded-full bg-paper-deep" role="progressbar" aria-label="Прохождение практикума" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="camera-completion-track">
                             <div id="camera-completion-bar" class="h-full rounded-full bg-brand transition-all" style="width: 0%"></div>
                         </div>
-                        <p class="mt-1.5 text-[10px] leading-relaxed text-muted">Одна эмоция = {{ (int) round(100 / max(count($targets), 1)) }}%. Прогресс сохраняется в этой сессии.</p>
+                        <p class="mt-1.5 text-[10px] leading-relaxed text-muted">Одна эмоция = {{ (int) round(100 / max(count($targets), 1)) }}%. Прогресс сохраняется в профиле и идёт в общую шкалу.</p>
                         <button type="button" id="camera-finish" class="btn-primary mt-3 hidden min-h-11 w-full py-2.5 text-xs">
                             Завершить практикум
                         </button>

@@ -6,6 +6,19 @@ window.Alpine = Alpine;
 window.Chart = Chart;
 window.Sortable = Sortable;
 
+window.vektorInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    window.vektorInstallPrompt = event;
+    window.dispatchEvent(new Event('vektor-install-available'));
+});
+
+window.addEventListener('appinstalled', () => {
+    window.vektorInstallPrompt = null;
+    window.dispatchEvent(new Event('vektor-installed'));
+});
+
 window.applyVektorTheme = (theme) => {
     document.documentElement.dataset.theme = theme;
 
@@ -25,6 +38,81 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 }
 
 document.addEventListener('alpine:init', () => {
+    Alpine.data('pwaInstall', () => ({
+        deferredPrompt: null,
+        visible: false,
+        helpOpen: false,
+        isIos: false,
+        onAvailable: null,
+        onInstalled: null,
+
+        init() {
+            const standalone = window.matchMedia?.('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+
+            this.isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+            if (standalone) {
+                return;
+            }
+
+            this.visible = true;
+            this.deferredPrompt = window.vektorInstallPrompt;
+
+            this.onAvailable = () => {
+                this.deferredPrompt = window.vektorInstallPrompt;
+                this.visible = true;
+            };
+
+            this.onInstalled = () => {
+                this.visible = false;
+                this.helpOpen = false;
+                this.deferredPrompt = null;
+            };
+
+            window.addEventListener('vektor-install-available', this.onAvailable);
+            window.addEventListener('vektor-installed', this.onInstalled);
+        },
+
+        destroy() {
+            if (this.onAvailable) {
+                window.removeEventListener('vektor-install-available', this.onAvailable);
+            }
+
+            if (this.onInstalled) {
+                window.removeEventListener('vektor-installed', this.onInstalled);
+            }
+        },
+
+        async install() {
+            if (!this.deferredPrompt) {
+                this.helpOpen = true;
+
+                return;
+            }
+
+            const prompt = this.deferredPrompt;
+            this.deferredPrompt = null;
+            window.vektorInstallPrompt = null;
+
+            try {
+                await prompt.prompt();
+                const choice = await prompt.userChoice;
+
+                if (choice?.outcome === 'accepted') {
+                    this.visible = false;
+                }
+            } catch (error) {
+                console.error(error);
+                this.helpOpen = true;
+            }
+        },
+
+        closeHelp() {
+            this.helpOpen = false;
+        },
+    }));
+
     Alpine.data('chartCanvas', (config) => ({
         chart: null,
 

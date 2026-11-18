@@ -40,6 +40,7 @@
             <a href="#principles" class="transition hover:text-ink">Принципы</a>
         </nav>
         <div class="flex items-center gap-2">
+            <x-install-app variant="header" />
             @auth
                 <a href="{{ route('dashboard') }}" class="btn-primary px-4 py-2.5 text-xs sm:text-sm">В кабинет</a>
             @else

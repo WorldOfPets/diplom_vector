@@ -66,6 +66,8 @@
     </nav>
 
     <div class="mt-auto space-y-3">
+        <x-install-app />
+
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-3xl border border-line/80 bg-paper/70 px-3.5 py-3">
             <a href="{{ route('credits') }}" class="text-[10px] font-bold text-muted underline decoration-line underline-offset-2 hover:text-ink">Фото и лицензии →</a>
             <a href="{{ route('dashboard') }}#guide" class="text-[10px] font-bold text-muted underline decoration-line underline-offset-2 hover:text-ink">Как пользоваться →</a>
@@ -161,6 +163,10 @@
             <p class="text-lg font-extrabold">Ещё</p>
             <button type="button" class="btn-ghost px-3 py-1.5 text-xs" @click="toggleMore(false)">Закрыть</button>
         </div>
+        <div class="mt-3">
+            <x-install-app variant="sheet" />
+        </div>
+
         <div class="mt-3 grid grid-cols-2 gap-2">
             @foreach($mobileMore as $item)
                 @php $active = request()->routeIs($item['pattern']); @endphp

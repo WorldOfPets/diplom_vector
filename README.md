@@ -125,6 +125,8 @@ YANDEX_REDIRECT_URI="${APP_URL}/auth/yandex/callback"
 
 Других способов входа и регистрации в production нет.
 
+Важно: `redirect_uri` должен **точно** совпадать с Callback URL в приложении Яндекс ID. Для production это `https://vectoredu.space/auth/yandex/callback`. Для локальной проверки либо добавьте `http://localhost:8000/auth/yandex/callback` в настройки приложения, либо используйте `DEV_LOGIN=true` и `/dev-login`.
+
 ## Администратор
 
 После первого входа через Яндекс назначьте роль командой:

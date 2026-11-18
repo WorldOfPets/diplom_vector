@@ -34,7 +34,7 @@
                     <div class="flex flex-1 flex-col p-5">
                         <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
                             <span>{{ $article->reading_minutes }} мин</span>
-                            @if($article->video_url)
+                            @if($article->hasVideo())
                                 <span>· видео</span>
                             @endif
                         </div>

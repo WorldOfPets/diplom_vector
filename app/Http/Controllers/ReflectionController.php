@@ -11,6 +11,7 @@ class ReflectionController extends Controller
     public function store(Request $request, TrainerAttempt $attempt): RedirectResponse
     {
         abort_unless($attempt->user_id === $request->user()->id, 403);
+        abort_unless($attempt->status === 'completed', 422, 'Сначала завершите тренажёр.');
 
         $data = $request->validate([
             'choice' => ['required', 'in:suitcase,basket,mincer'],

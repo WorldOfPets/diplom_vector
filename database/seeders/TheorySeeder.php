@@ -16,6 +16,7 @@ class TheorySeeder extends Seeder
                 'excerpt' => 'Четыре навыка, которые помогают не «держать лицо», а понимать себя и выбирать реакцию.',
                 'reading_minutes' => 6,
                 'sort' => 1,
+                'video_path' => 'media/theory/emotional-intelligence.mp4',
                 'source_url' => 'https://ru.wikipedia.org/wiki/Эмоциональный_интеллект',
                 'body' => <<<'MD'
 ## Коротко

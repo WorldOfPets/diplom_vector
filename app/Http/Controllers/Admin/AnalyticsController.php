@@ -115,10 +115,12 @@ class AnalyticsController extends Controller
                     ->where('status', 'completed')
                     ->avg('percent');
 
+                $smallGroup = $group->users_count < 3;
+
                 return [
                     'group' => $group,
-                    'ei' => $ei !== null ? round((float) $ei, 1) : null,
-                    'trainers' => $trainers !== null ? round((float) $trainers, 1) : null,
+                    'ei' => ! $smallGroup && $ei !== null ? round((float) $ei, 1) : null,
+                    'trainers' => ! $smallGroup && $trainers !== null ? round((float) $trainers, 1) : null,
                 ];
             });
 

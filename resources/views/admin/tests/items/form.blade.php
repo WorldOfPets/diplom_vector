@@ -60,12 +60,12 @@
             <div class="card p-5">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="label">Ветвь</label>
-                        <input name="branch" value="{{ old('branch', $item?->branch) }}" class="input" placeholder="perception / managing / internal" required>
+                        <label class="label" for="branch">Ветвь</label>
+                        <input id="branch" name="branch" value="{{ old('branch', $item?->branch) }}" class="input" placeholder="perception / managing / internal" required>
                     </div>
                     <div>
-                        <label class="label">Тип</label>
-                        <select name="type" class="input" onchange="window.location='{{ $typeUrl }}?type=' + encodeURIComponent(this.value)">
+                        <label class="label" for="type">Тип</label>
+                        <select id="type" name="type" class="input" onchange="window.location='{{ $typeUrl }}?type=' + encodeURIComponent(this.value)">
                             @foreach($types as $type)
                                 <option value="{{ $type }}" @selected(old('type', $selectedType) === $type)>{{ $typeLabels[$type] ?? $type }}</option>
                             @endforeach
@@ -74,12 +74,12 @@
                     </div>
                 </div>
                 <div class="mt-4">
-                    <label class="label">Формулировка</label>
-                    <textarea name="prompt" rows="3" class="textarea" required>{{ old('prompt', $item?->prompt) }}</textarea>
+                    <label class="label" for="prompt">Формулировка</label>
+                    <textarea id="prompt" name="prompt" rows="3" class="textarea" required>{{ old('prompt', $item?->prompt) }}</textarea>
                 </div>
                 <div class="mt-4">
-                    <label class="label">Путь к изображению</label>
-                    <input name="media_path" value="{{ old('media_path', $item?->media_path) }}" class="input" placeholder="media/photos/conflict-laptop.jpg">
+                    <label class="label" for="media_path">Путь к изображению</label>
+                    <input id="media_path" name="media_path" value="{{ old('media_path', $item?->media_path) }}" class="input" placeholder="media/photos/conflict-laptop.jpg">
                     @if(old('media_path', $item?->media_path))
                         <div class="mt-2 h-28 overflow-hidden rounded-xl border border-line">
                             <img src="{{ asset(old('media_path', $item?->media_path)) }}" alt="" class="h-full w-full object-cover">
@@ -97,12 +97,12 @@
                 <p class="text-sm font-bold">Параметры</p>
                 <div class="mt-4 space-y-3">
                     <div>
-                        <label class="label">Вес</label>
-                        <input type="number" step="0.1" min="0.1" max="10" name="weight" value="{{ old('weight', $item?->weight ?? 1) }}" class="input">
+                        <label class="label" for="weight">Вес</label>
+                        <input id="weight" type="number" step="0.1" min="0.1" max="10" name="weight" value="{{ old('weight', $item?->weight ?? 1) }}" class="input">
                     </div>
                     <div>
-                        <label class="label">Сложность</label>
-                        <select name="difficulty" class="input">
+                        <label class="label" for="difficulty">Сложность</label>
+                        <select id="difficulty" name="difficulty" class="input">
                             @for($level = 1; $level <= 3; $level++)
                                 <option value="{{ $level }}" @selected((int) old('difficulty', $item?->difficulty ?? 2) === $level)>{{ $level }}</option>
                             @endfor

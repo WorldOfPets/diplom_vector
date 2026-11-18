@@ -3,7 +3,9 @@
 @section('title', $article->title)
 
 @php
-    $embed = $article->rutubeEmbedUrl();
+    $localVideo = $article->localVideoPath();
+    $localPoster = $article->localVideoPoster();
+    $embed = $localVideo ? null : $article->rutubeEmbedUrl();
 @endphp
 
 @section('content')
@@ -19,7 +21,7 @@
         <div class="mb-3 flex flex-wrap items-center gap-2">
             <span class="chip">{{ $article->reading_minutes }} мин</span>
             <span class="chip" x-show="read" x-cloak><x-icon name="check" class="h-3 w-3 text-mint" /> прочитано</span>
-            @if($article->video_url)
+            @if($article->hasVideo())
                 <span class="chip">видео</span>
             @endif
             @if($article->hasTrackableVideo() && $videoCompleted)
@@ -70,9 +72,46 @@
                     </div>
                 </div>
             </div>
+        @elseif($localVideo)
+            <div
+                class="mt-6 overflow-hidden rounded-3xl border border-line bg-inverse"
+                x-data="theoryLocalVideo({
+                    url: '{{ route('theory.video', $article) }}',
+                    csrf: '{{ csrf_token() }}',
+                    completed: {{ $videoCompleted ? 'true' : 'false' }},
+                    initialPercent: {{ (float) $videoProgress }}
+                })"
+            >
+                <div class="aspect-video bg-black">
+                    <video
+                        x-ref="video"
+                        class="h-full w-full"
+                        controls
+                        playsinline
+                        preload="metadata"
+                        @if($localPoster) poster="{{ asset($localPoster) }}" @endif
+                        aria-label="{{ $article->title }}"
+                        @timeupdate="onTimeUpdate($event)"
+                        @seeking="lastTime = null"
+                    >
+                        <source src="{{ asset($localVideo) }}" type="{{ $article->localVideoMime() }}">
+                    </video>
+                </div>
+                <div class="border-t border-white/10 px-4 py-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold">
+                        <span class="text-white/70" x-show="!completed">Просмотрено: <span x-text="percent"></span>%</span>
+                        <span class="text-mint" x-show="!completed">Нужно 80%</span>
+                        <span class="text-mint" x-show="completed" x-cloak>✓ видео просмотрено</span>
+                        <span class="text-white/50" x-show="!completed">Просмотр засчитывается после 80%</span>
+                    </div>
+                    <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15" x-show="!completed">
+                        <div class="h-full rounded-full bg-brand transition-[width] duration-300" :style="`width: ${percent}%`"></div>
+                    </div>
+                </div>
+            </div>
         @elseif($article->video_url)
             <x-alert type="info" class="mt-6">
-                Видео доступно по ссылке: <a href="{{ $article->video_url }}" target="_blank" rel="noopener" class="font-bold underline">открыть Rutube</a>.
+                Видео доступно по ссылке: <a href="{{ $article->video_url }}" target="_blank" rel="noopener" class="font-bold underline">открыть видео</a>.
             </x-alert>
         @endif
 
@@ -83,6 +122,12 @@
                 <p>Полный текст статьи доступен по внешней ссылке.</p>
             @endif
         </article>
+
+        @if($article->hasVideo())
+            <p class="mt-2 text-[10px] leading-relaxed text-muted">
+                Видео — учебный обзор, а не нормативный источник. Оценки вклада IQ и ЭИ в успех зависят от выборки и метода: воспринимайте проценты как порядок величин, а не точную формулу.
+            </p>
+        @endif
 
         @if($article->source_url)
             <a href="{{ $article->source_url }}" target="_blank" rel="noopener" class="btn-secondary mt-6">

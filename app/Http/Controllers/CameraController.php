@@ -45,8 +45,19 @@ class CameraController extends Controller
         return redirect()->route('camera.show')->with('status', 'Согласие на камеру сохранено. Кадры не покидают устройство.');
     }
 
+    public function revokeConsent(Request $request): RedirectResponse
+    {
+        $request->user()->forceFill(['camera_consent_at' => null])->save();
+
+        return redirect()
+            ->route('camera.show')
+            ->with('status', 'Согласие на камеру отозвано. Доступ отключён.');
+    }
+
     public function progress(Request $request): JsonResponse
     {
+        abort_if($request->user()->camera_consent_at === null, 403, 'Сначала подтвердите согласие на камеру.');
+
         $data = $request->validate([
             'target' => ['required', 'string', 'max:40'],
             'emotion' => ['required', 'string', 'max:40'],
@@ -56,9 +67,15 @@ class CameraController extends Controller
         ]);
 
         $trainer = $this->cameraTrainer();
-        $targetIds = collect($trainer->config['targets'] ?? [])->pluck('id')->all();
+        $targets = collect($trainer->config['targets'] ?? []);
+        $targetIds = $targets->pluck('id')->all();
 
         abort_unless(in_array($data['target'], $targetIds, true), 422, 'Неизвестная эмоция.');
+
+        $threshold = (float) ($targets->firstWhere('id', $data['target'])['threshold'] ?? 80);
+
+        abort_if((float) $data['confidence'] < $threshold, 422, 'Недостаточная уверенность модели.');
+        abort_if((int) $data['duration_ms'] < 1500, 422, 'Слишком короткое удержание выражения.');
 
         $key = $this->progressKey($request->user()->id, $trainer->id);
         $progress = $request->session()->get($key, []);
@@ -84,37 +101,32 @@ class CameraController extends Controller
 
     public function submit(Request $request): JsonResponse
     {
+        abort_if($request->user()->camera_consent_at === null, 403, 'Сначала подтвердите согласие на камеру.');
+
         $trainer = $this->cameraTrainer();
         $targetIds = collect($trainer->config['targets'] ?? [])->pluck('id')->all();
         $key = $this->progressKey($request->user()->id, $trainer->id);
         $progress = $request->session()->get($key, []);
         $completed = array_values(array_intersect($targetIds, array_keys($progress)));
 
-        if ($progress !== [] && count($completed) >= count($targetIds)) {
-            $data = [
-                'targets' => $progress,
-                'completed' => count($completed),
-                'total' => count($targetIds),
-                'duration_ms' => array_sum(array_map(fn (array $item): int => (int) ($item['duration_ms'] ?? 0), $progress)),
-                'attempts' => array_sum(array_map(fn (array $item): int => (int) ($item['attempts'] ?? 1), $progress)),
-            ];
-        } else {
-            $data = $request->validate([
-                'target' => ['required', 'string', 'max:40'],
-                'emotion' => ['required', 'string', 'max:40'],
-                'confidence' => ['required', 'numeric', 'between:0,100'],
-                'duration_ms' => ['required', 'integer', 'between:0,60000'],
-                'attempts' => ['required', 'integer', 'between:1,20'],
-            ]);
+        if ($targetIds === [] || count($completed) < count($targetIds)) {
+            return response()->json([
+                'message' => 'Сначала пройдите все эмоции практикума.',
+            ], 422);
         }
 
+        $data = [
+            'targets' => $progress,
+            'completed' => count($completed),
+            'total' => count($targetIds),
+            'duration_ms' => array_sum(array_map(fn (array $item): int => (int) ($item['duration_ms'] ?? 0), $progress)),
+            'attempts' => array_sum(array_map(fn (array $item): int => (int) ($item['attempts'] ?? 1), $progress)),
+        ];
+
         $result = app(CameraEngine::class)->score($trainer->config ?? [], $data);
-        $targetConfig = collect($trainer->config['targets'] ?? [])->firstWhere('id', $data['target'] ?? null);
-        $threshold = (float) ($targetConfig['threshold'] ?? $trainer->settings['threshold'] ?? 80);
+        $threshold = (float) ($trainer->settings['threshold'] ?? 80);
 
         $attempt = DB::transaction(function () use ($request, $trainer, $data, $result, $threshold, $key): TrainerAttempt {
-            $request->user()->forceFill(['camera_consent_at' => now()])->save();
-
             $durationMs = (int) ($data['duration_ms'] ?? 0);
 
             $attempt = TrainerAttempt::query()->create([

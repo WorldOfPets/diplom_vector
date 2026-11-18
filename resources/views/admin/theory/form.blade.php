@@ -17,7 +17,7 @@
 
     <h1 class="mt-2 text-2xl font-extrabold tracking-tight">{{ $article ? $article->title : 'Новый материал' }}</h1>
 
-    <form method="POST" action="{{ $action }}" class="mt-5 grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+    <form method="POST" action="{{ $action }}" enctype="multipart/form-data" class="mt-5 grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
         @csrf
         @if($article)
             @method('PUT')
@@ -27,21 +27,21 @@
             <div class="card p-5">
                 <div class="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
                     <div>
-                        <label class="label">Заголовок</label>
-                        <input name="title" value="{{ old('title', $article?->title) }}" class="input" required>
+                        <label class="label" for="title">Заголовок</label>
+                        <input id="title" name="title" value="{{ old('title', $article?->title) }}" class="input" required>
                     </div>
                     <div>
-                        <label class="label">Slug</label>
-                        <input name="slug" value="{{ old('slug', $article?->slug) }}" class="input" placeholder="автоматически">
+                        <label class="label" for="slug">Slug</label>
+                        <input id="slug" name="slug" value="{{ old('slug', $article?->slug) }}" class="input" placeholder="автоматически">
                     </div>
                 </div>
                 <div class="mt-4">
-                    <label class="label">Краткое описание</label>
-                    <textarea name="excerpt" rows="2" class="textarea">{{ old('excerpt', $article?->excerpt) }}</textarea>
+                    <label class="label" for="excerpt">Краткое описание</label>
+                    <textarea id="excerpt" name="excerpt" rows="2" class="textarea">{{ old('excerpt', $article?->excerpt) }}</textarea>
                 </div>
                 <div class="mt-4">
-                    <label class="label">Текст (Markdown)</label>
-                    <textarea name="body" rows="16" class="textarea font-mono text-[11px]">{{ old('body', $article?->body) }}</textarea>
+                    <label class="label" for="body">Текст (Markdown)</label>
+                    <textarea id="body" name="body" rows="16" class="textarea font-mono text-[11px]">{{ old('body', $article?->body) }}</textarea>
                 </div>
             </div>
 
@@ -49,17 +49,32 @@
                 <p class="text-sm font-bold">Медиа и ссылки</p>
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="label">Обложка (путь)</label>
-                        <input name="cover_path" value="{{ old('cover_path', $article?->cover_path) }}" class="input" placeholder="media/photos/lecture.jpg">
+                        <label class="label" for="cover_path">Обложка (путь)</label>
+                        <input id="cover_path" name="cover_path" value="{{ old('cover_path', $article?->cover_path) }}" class="input" placeholder="media/photos/lecture.jpg">
                     </div>
                     <div>
-                        <label class="label">Rutube</label>
-                        <input name="video_url" value="{{ old('video_url', $article?->video_url) }}" class="input" placeholder="https://rutube.ru/video/...">
-                        <p class="mt-1 text-[10px] leading-relaxed text-muted">Просмотр засчитывается после 80% видео. Поддерживается Rutube embed.</p>
+                        <label class="label" for="video_url">Rutube</label>
+                        <input id="video_url" name="video_url" value="{{ old('video_url', $article?->video_url) }}" class="input" placeholder="https://rutube.ru/video/...">
+                        <p class="mt-1 text-[10px] leading-relaxed text-muted">Внешняя ссылка. Если загружено локальное видео, оно показывается первым.</p>
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="label">Первоисточник</label>
-                        <input name="source_url" value="{{ old('source_url', $article?->source_url) }}" class="input" placeholder="https://...">
+                        <label class="label" for="video_file">Локальное видео (MP4 / WebM)</label>
+                        <input id="video_file" type="file" name="video_file" accept="video/mp4,video/webm" class="input file:mr-3 file:rounded-full file:border-0 file:bg-paper-deep file:px-3 file:py-1.5 file:text-xs file:font-bold">
+                        <p class="mt-1 text-[10px] leading-relaxed text-muted">До 200 МБ. Просмотр засчитывается после 80% реального времени; перемотка не помогает.</p>
+                        @if($article?->video_path)
+                            <div class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-paper/60 px-3 py-2">
+                                <span class="text-[11px] font-semibold text-ink-soft">Сейчас: {{ $article->video_path }}</span>
+                                <a href="{{ asset($article->video_path) }}" target="_blank" rel="noopener" class="text-[11px] font-bold text-brand underline">открыть</a>
+                                <label class="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-ink-soft">
+                                    <input type="checkbox" name="remove_video" value="1" class="h-3.5 w-3.5 rounded border-line text-rose">
+                                    удалить
+                                </label>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="label" for="source_url">Первоисточник</label>
+                        <input id="source_url" name="source_url" value="{{ old('source_url', $article?->source_url) }}" class="input" placeholder="https://...">
                     </div>
                 </div>
             </div>
@@ -70,12 +85,12 @@
                 <p class="text-sm font-bold">Параметры</p>
                 <div class="mt-4 space-y-3">
                     <div>
-                        <label class="label">Минут чтения</label>
-                        <input type="number" min="1" max="120" name="reading_minutes" value="{{ old('reading_minutes', $article?->reading_minutes ?? 5) }}" class="input">
+                        <label class="label" for="reading_minutes">Минут чтения</label>
+                        <input id="reading_minutes" type="number" min="1" max="120" name="reading_minutes" value="{{ old('reading_minutes', $article?->reading_minutes ?? 5) }}" class="input">
                     </div>
                     <div>
-                        <label class="label">Сортировка</label>
-                        <input type="number" min="0" max="1000" name="sort" value="{{ old('sort', $article?->sort ?? 0) }}" class="input">
+                        <label class="label" for="sort">Сортировка</label>
+                        <input id="sort" type="number" min="0" max="1000" name="sort" value="{{ old('sort', $article?->sort ?? 0) }}" class="input">
                     </div>
                     <label class="flex items-center gap-2 text-xs font-semibold text-ink-soft">
                         <input type="checkbox" name="is_published" value="1" class="h-4 w-4 rounded border-line text-brand" @checked(old('is_published', $article?->is_published ?? true))>

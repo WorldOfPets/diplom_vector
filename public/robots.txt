@@ -1,2 +1,9 @@
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /diary
+Disallow: /progress
+Disallow: /certificate
+Disallow: /profile
+Disallow: /attempts
+Disallow: /test-attempts
+Disallow: /dev-login

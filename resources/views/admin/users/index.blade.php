@@ -7,7 +7,7 @@
         <div>
             <p class="section-eyebrow">Пользователи</p>
             <h1 class="mt-1 text-3xl font-extrabold tracking-tight">Студенты и роли</h1>
-            <p class="mt-1 text-sm text-muted">Всего {{ $users->total() }}. Здесь же можно сбросить попытки.</p>
+            <p class="mt-1 text-sm text-muted">Всего {{ $users->total() }}. Здесь же можно сбросить попытки и прогресс.</p>
         </div>
         <a href="{{ route('admin.export.users') }}" class="btn-secondary px-4 py-2.5 text-xs">Экспорт CSV</a>
     </div>
@@ -59,20 +59,20 @@
                         @csrf
                         @method('PUT')
                         <div>
-                            <label class="label">Имя</label>
-                            <input name="name" value="{{ $user->name }}" class="input py-2.5 text-xs" required>
+                            <label class="label" for="user-name-{{ $user->id }}">Имя</label>
+                            <input id="user-name-{{ $user->id }}" name="name" value="{{ $user->name }}" class="input py-2.5 text-xs" required>
                         </div>
                         <div>
-                            <label class="label">Роль</label>
-                            <select name="role" class="input py-2.5 text-xs">
+                            <label class="label" for="user-role-{{ $user->id }}">Роль</label>
+                            <select id="user-role-{{ $user->id }}" name="role" class="input py-2.5 text-xs">
                                 @foreach($roles as $role)
                                     <option value="{{ $role->value }}" @selected($user->role === $role)>{{ $role->label() }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div>
-                            <label class="label">Группа</label>
-                            <select name="group_id" class="input py-2.5 text-xs">
+                            <label class="label" for="user-group-{{ $user->id }}">Группа</label>
+                            <select id="user-group-{{ $user->id }}" name="group_id" class="input py-2.5 text-xs">
                                 <option value="">—</option>
                                 @foreach($groups as $group)
                                     <option value="{{ $group->id }}" @selected($user->group_id === $group->id)>{{ $group->name }}</option>
@@ -80,8 +80,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="label">Курс</label>
-                            <select name="course" class="input py-2.5 text-xs">
+                            <label class="label" for="user-course-{{ $user->id }}">Курс</label>
+                            <select id="user-course-{{ $user->id }}" name="course" class="input py-2.5 text-xs">
                                 <option value="">—</option>
                                 @for($course = 1; $course <= 4; $course++)
                                     <option value="{{ $course }}" @selected($user->course === $course)>{{ $course }}</option>
@@ -89,8 +89,8 @@
                             </select>
                         </div>
                         <div class="sm:col-span-2 lg:col-span-3">
-                            <label class="label">Специальность</label>
-                            <input name="specialty" value="{{ $user->specialty }}" class="input py-2.5 text-xs">
+                            <label class="label" for="user-specialty-{{ $user->id }}">Специальность</label>
+                            <input id="user-specialty-{{ $user->id }}" name="specialty" value="{{ $user->specialty }}" class="input py-2.5 text-xs">
                         </div>
                         <div class="flex items-end">
                             <button class="btn-primary w-full py-2.5 text-xs">Сохранить</button>
@@ -101,9 +101,15 @@
                 <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-line/60 pt-3">
                     <span class="chip">{{ $user->role?->label() }}</span>
                     <span class="chip">{{ $user->group?->name ?? 'без группы' }}</span>
-                    <form method="POST" action="{{ route('admin.users.reset', $user) }}" onsubmit="return confirm('Удалить все попытки этого пользователя?')">
+                    <form method="POST" action="{{ route('admin.users.reset', $user) }}" onsubmit="return confirm('Удалить попытки, прогресс, отзыв и сертификат этого пользователя? Дневник не затрагивается.')">
                         @csrf
-                        <button class="btn-danger px-3 py-1.5 text-[10px]">Сбросить попытки</button>
+                        <button class="btn-danger px-3 py-1.5 text-[10px]">Сбросить прогресс</button>
+                    </form>
+
+                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Удалить пользователя и все связанные данные, включая дневник? Это действие необратимо.')">
+                        @csrf
+                        @method('DELETE')
+                        <button class="btn-ghost px-3 py-1.5 text-[10px] text-[#b4123a]">Удалить</button>
                     </form>
                 </div>
             </div>

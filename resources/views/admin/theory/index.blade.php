@@ -7,7 +7,7 @@
         <div>
             <p class="section-eyebrow">Контент</p>
             <h1 class="mt-1 text-3xl font-extrabold tracking-tight">Теория</h1>
-            <p class="mt-1 text-sm text-muted">Статьи и видео. Ссылки на Rutube встраиваются автоматически.</p>
+            <p class="mt-1 text-sm text-muted">Статьи и видео. Локальные MP4 и Rutube-ссылки встраиваются автоматически.</p>
         </div>
         <a href="{{ route('admin.theory.create') }}" class="btn-primary px-4 py-2.5 text-xs">Добавить материал</a>
     </div>
@@ -19,8 +19,8 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <p class="text-sm font-extrabold">{{ $article->title }}</p>
                         <span class="chip">{{ $article->reading_minutes }} мин</span>
-                        @if($article->video_url)
-                            <span class="chip">видео</span>
+                        @if($article->hasVideo())
+                            <span class="chip">{{ $article->video_path ? 'локальное видео' : 'Rutube' }}</span>
                         @endif
                         @if($article->source_url)
                             <span class="chip">ссылка</span>

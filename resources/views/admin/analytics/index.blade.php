@@ -45,8 +45,8 @@
 
     <form method="GET" class="card mt-5 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
         <div class="sm:w-80">
-            <label class="label">Тест</label>
-            <select name="test" class="input">
+            <label class="label" for="analytics-test">Тест</label>
+            <select id="analytics-test" name="test" class="input">
                 @foreach($tests as $test)
                     <option value="{{ $test->id }}" @selected($selectedTest?->id === $test->id)>{{ $test->title }} ({{ $test->kind }})</option>
                 @endforeach
@@ -177,6 +177,9 @@
                     </tbody>
                 </table>
             </div>
+            <p class="mt-3 px-5 text-[10px] leading-relaxed text-muted">
+                Средние по группам меньше 3 человек скрыты, чтобы не показывать индивидуальные результаты.
+            </p>
         </section>
     </div>
 @endsection

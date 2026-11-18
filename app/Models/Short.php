@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'topic',
     'video_path',
     'poster_path',
+    'width',
+    'height',
+    'has_audio',
     'duration_sec',
     'likes_count',
     'sort',
@@ -27,11 +30,24 @@ class Short extends Model
     protected function casts(): array
     {
         return [
+            'width' => 'integer',
+            'height' => 'integer',
+            'has_audio' => 'boolean',
             'duration_sec' => 'integer',
             'likes_count' => 'integer',
             'sort' => 'integer',
             'is_published' => 'boolean',
         ];
+    }
+
+    public function isPortrait(): bool
+    {
+        return (int) ($this->height ?? 1280) >= (int) ($this->width ?? 720);
+    }
+
+    public function aspectRatio(): string
+    {
+        return (int) ($this->width ?? 720).' / '.(int) ($this->height ?? 1280);
     }
 
     public function likes(): HasMany

@@ -43,15 +43,25 @@ class YandexController extends Controller
                 ->withErrors(['oauth' => 'Не удалось войти через Яндекс. Попробуйте ещё раз.']);
         }
 
-        $email = $yandexUser->getEmail()
-            ?: 'yandex-'.$yandexUser->getId().'@no-email.local';
+        $yandexId = (string) $yandexUser->getId();
+        $email = Str::lower(
+            $yandexUser->getEmail() ?: 'yandex-'.$yandexId.'@no-email.local',
+        );
 
-        $user = User::query()
-            ->where('yandex_id', $yandexUser->getId())
-            ->orWhere('email', $email)
-            ->first();
+        $byYandex = User::query()->where('yandex_id', $yandexId)->first();
+        $byEmail = User::query()->where('email', $email)->first();
 
-        if ($user === null) {
+        if ($byYandex !== null) {
+            $user = $byYandex;
+        } elseif ($byEmail !== null) {
+            if ($byEmail->yandex_id !== null && (string) $byEmail->yandex_id !== $yandexId) {
+                return redirect()
+                    ->route('login')
+                    ->withErrors(['oauth' => 'Этот email уже привязан к другому аккаунту Яндекса. Войдите под ним или обратитесь к администратору.']);
+            }
+
+            $user = $byEmail;
+        } else {
             $user = new User;
             $user->role = UserRole::Student;
         }
@@ -63,9 +73,11 @@ class YandexController extends Controller
         }
 
         $user->fill([
-            'yandex_id' => $yandexUser->getId(),
+            'yandex_id' => $yandexId,
             'name' => $yandexUser->getName() ?: $yandexUser->getNickname() ?: 'Студент',
-            'email' => $email,
+            'email' => $byYandex !== null && $byEmail !== null && ! $byEmail->is($byYandex)
+                ? $byYandex->email
+                : $email,
             'avatar_url' => $avatar,
         ]);
 

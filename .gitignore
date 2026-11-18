@@ -21,6 +21,7 @@
 /opencode.json
 /auth.json
 /composer.phar
+/content
 /node_modules
 /public/fonts-manifest.dev.json
 /public/hot

@@ -6,6 +6,7 @@ use App\Support\PhotoLibrary;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Arr;
 
 #[Fillable(['test_id', 'branch', 'type', 'prompt', 'media_path', 'config', 'key_data', 'weight', 'difficulty', 'sort', 'is_active'])]
 class TestItem extends Model
@@ -41,6 +42,13 @@ class TestItem extends Model
 
         if ($this->type === 'motivation') {
             unset($config['reverse']);
+        }
+
+        if ($this->type === 'best_worst' && isset($config['options']) && is_array($config['options'])) {
+            $config['options'] = array_map(
+                fn (mixed $option): mixed => is_array($option) ? Arr::except($option, ['scores']) : $option,
+                $config['options'],
+            );
         }
 
         return [

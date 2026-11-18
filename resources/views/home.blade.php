@@ -17,7 +17,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="{{ $theme === 'dark' ? '#0b0e14' : '#f7f5f0' }}">
     <title>Вектор — тренажёр мотивации и эмоционального интеллекта</title>
-    <meta name="description" content="Цифровой тренажёр для студентов СПО: диагностика эмоционального интеллекта, 43 интерактивных упражнения и личная динамика мотивации.">
+    <meta name="description" content="Цифровой тренажёр для студентов СПО: диагностика эмоционального интеллекта, {{ $trainerCount }} интерактивных упражнений и личная динамика мотивации.">
     @include('partials.pwa-head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -79,15 +79,15 @@
 
             <div class="mt-9 grid max-w-lg grid-cols-3 gap-3">
                 <div class="rounded-2xl border border-line/80 bg-surface/60 px-4 py-3">
-                    <p class="text-2xl font-extrabold tracking-tight text-ink">5</p>
+                    <p class="text-2xl font-extrabold tracking-tight text-ink">{{ $moduleCount }}</p>
                     <p class="mt-0.5 text-[11px] font-semibold text-muted">модулей</p>
                 </div>
                 <div class="rounded-2xl border border-line/80 bg-surface/60 px-4 py-3">
-                    <p class="text-2xl font-extrabold tracking-tight text-ink">43</p>
+                    <p class="text-2xl font-extrabold tracking-tight text-ink">{{ $trainerCount }}</p>
                     <p class="mt-0.5 text-[11px] font-semibold text-muted">тренажёра</p>
                 </div>
                 <div class="rounded-2xl border border-line/80 bg-surface/60 px-4 py-3">
-                    <p class="text-2xl font-extrabold tracking-tight text-ink">3</p>
+                    <p class="text-2xl font-extrabold tracking-tight text-ink">{{ $eiFormatsCount }}</p>
                     <p class="mt-0.5 text-[11px] font-semibold text-muted">формата ЭИ</p>
                 </div>
             </div>

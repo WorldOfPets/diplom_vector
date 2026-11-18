@@ -137,10 +137,16 @@ class TestController extends Controller
         abort_if($attempt->status === 'completed', 422, 'Попытка уже завершена.');
 
         $data = $request->validate([
-            'answers' => ['required', 'array'],
+            'answers' => ['required', 'array', 'max:200'],
+            'answers.*' => ['array'],
         ]);
 
-        $attempt->update(['draft' => $data['answers']]);
+        $itemIds = $attempt->test->items()->where('is_active', true)->pluck('id')->all();
+        $answers = array_intersect_key($data['answers'], array_flip($itemIds));
+
+        abort_if(strlen((string) json_encode($answers)) > 200000, 422, 'Черновик слишком большой.');
+
+        $attempt->update(['draft' => $answers]);
 
         return response()->json(['ok' => true]);
     }
@@ -151,10 +157,14 @@ class TestController extends Controller
         abort_if($attempt->status === 'completed', 422, 'Попытка уже завершена.');
 
         $data = $request->validate([
-            'answers' => ['required', 'array'],
+            'answers' => ['required', 'array', 'max:200'],
+            'answers.*' => ['array'],
         ]);
 
         $items = $attempt->test->items()->where('is_active', true)->get();
+
+        abort_if($items->isEmpty(), 422, 'В этом тесте нет активных заданий.');
+
         $answers = [];
 
         foreach ($items as $item) {
@@ -163,6 +173,8 @@ class TestController extends Controller
                 $answers[$item->id] = $response;
             }
         }
+
+        abort_if(strlen((string) json_encode($answers)) > 200000, 422, 'Ответы слишком большие.');
 
         try {
             $result = $attempt->test->kind === 'motivation'

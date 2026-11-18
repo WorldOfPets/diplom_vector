@@ -15,6 +15,32 @@ class CameraSubmissionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_camera_consent_can_be_revoked(): void
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::Student,
+            'consent_at' => now(),
+            'consent_version' => '1.0',
+            'camera_consent_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->delete(route('camera.consent.revoke'))
+            ->assertRedirect(route('camera.show'));
+
+        $this->assertNull($user->refresh()->camera_consent_at);
+
+        $this->actingAs($user)
+            ->postJson(route('camera.progress'), [
+                'target' => 'happy',
+                'emotion' => 'happy',
+                'confidence' => 90,
+                'duration_ms' => 2000,
+                'attempts' => 1,
+            ])
+            ->assertForbidden();
+    }
+
     public function test_camera_result_is_scored_and_consent_is_saved(): void
     {
         $group = Group::query()->create([
@@ -28,6 +54,7 @@ class CameraSubmissionTest extends TestCase
             'group_id' => $group->id,
             'consent_at' => now(),
             'consent_version' => '1.0',
+            'camera_consent_at' => now(),
         ]);
 
         $module = Module::query()->create([
@@ -54,20 +81,25 @@ class CameraSubmissionTest extends TestCase
             'is_published' => true,
         ]);
 
-        $response = $this->actingAs($user)->postJson(route('camera.submit'), [
-            'target' => 'happy',
-            'emotion' => 'happy',
-            'confidence' => 90,
-            'duration_ms' => 2000,
-            'attempts' => 1,
-        ]);
+        $this->actingAs($user)
+            ->postJson(route('camera.progress'), [
+                'target' => 'happy',
+                'emotion' => 'happy',
+                'confidence' => 90,
+                'duration_ms' => 2000,
+                'attempts' => 1,
+            ])
+            ->assertOk();
+
+        $response = $this->actingAs($user)->postJson(route('camera.submit'));
 
         $response->assertOk()->assertJsonStructure(['redirect']);
 
         $attempt = TrainerAttempt::query()->firstOrFail();
 
         $this->assertSame('completed', $attempt->status);
-        $this->assertSame(90.0, (float) $attempt->percent);
+        $this->assertSame(100.0, (float) $attempt->percent);
+        $this->assertSame(90.0, (float) ($attempt->metrics['confidence'] ?? 0));
         $this->assertTrue($attempt->passed);
         $this->assertNotNull($user->fresh()->camera_consent_at);
     }

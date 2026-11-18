@@ -28,6 +28,7 @@ class CameraProgressTest extends TestCase
             'group_id' => $group->id,
             'consent_at' => now(),
             'consent_version' => '1.0',
+            'camera_consent_at' => now(),
         ]);
 
         $module = Module::query()->create([
@@ -70,6 +71,20 @@ class CameraProgressTest extends TestCase
                 'percent' => 50,
                 'done' => false,
             ]);
+
+        $this->actingAs($user)
+            ->postJson(route('camera.submit'))
+            ->assertStatus(422);
+
+        $this->actingAs($user)
+            ->postJson(route('camera.progress'), [
+                'target' => 'sad',
+                'emotion' => 'sad',
+                'confidence' => 40,
+                'duration_ms' => 2000,
+                'attempts' => 1,
+            ])
+            ->assertStatus(422);
 
         $this->actingAs($user)
             ->postJson(route('camera.progress'), [

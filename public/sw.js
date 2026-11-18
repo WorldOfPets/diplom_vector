@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vektor-static-v1';
+const CACHE_NAME = 'vektor-static-v2';
 const PRECACHE = [
     '/offline.html',
     '/manifest.json',

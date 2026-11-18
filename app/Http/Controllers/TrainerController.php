@@ -57,7 +57,8 @@ class TrainerController extends Controller
 
     public function submit(Request $request, Trainer $trainer): JsonResponse
     {
-        abort_unless($trainer->is_published, 404);
+        abort_unless($trainer->is_published && $trainer->module?->is_published, 404);
+        abort_if($trainer->engine === 'camera', 404);
 
         $data = $request->validate([
             'response' => ['required', 'array'],

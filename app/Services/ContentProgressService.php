@@ -37,7 +37,7 @@ class ContentProgressService
             ->whereHas('module', fn ($query) => $query->where('is_published', true))
             ->pluck('id');
 
-        $theoryArticles = TheoryArticle::query()->published()->get(['id', 'video_url']);
+        $theoryArticles = TheoryArticle::query()->published()->get(['id', 'video_url', 'video_path']);
         $theoryIds = $theoryArticles->pluck('id');
         $testIds = Test::query()->where('is_active', true)->pluck('id');
         $shortIds = Short::query()->published()->pluck('id');

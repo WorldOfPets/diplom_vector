@@ -85,7 +85,7 @@
             <div class="divide-y divide-line/60">
                 @forelse($recentTrainerAttempts as $attempt)
                     <div class="flex items-center gap-3 px-5 py-3">
-                        <span class="grid h-8 w-8 place-items-center rounded-xl bg-paper text-[10px] font-extrabold {{ $attempt->passed ? 'text-mint' : 'text-amber' }}">{{ (int) $attempt->percent }}%</span>
+                        <span class="grid h-8 w-8 place-items-center rounded-xl bg-paper text-[10px] font-extrabold {{ $attempt->passed ? 'text-mint-ink' : 'text-amber-ink' }}">{{ (int) $attempt->percent }}%</span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-xs font-bold">{{ $attempt->user?->name }}</p>
                             <p class="truncate text-[10px] text-muted">{{ $attempt->trainer?->title }} · {{ $attempt->completed_at?->diffForHumans() }}</p>

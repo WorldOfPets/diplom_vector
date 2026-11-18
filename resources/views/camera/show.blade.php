@@ -67,8 +67,8 @@
                     </p>
                     <div class="mt-4 flex flex-wrap gap-2">
                         <span class="chip"><x-icon name="shield" class="h-3 w-3 text-mint-ink" /> кадры не уходят на сервер</span>
-                        <span class="chip">7 эмоций</span>
-                        <span class="chip">порог 80%</span>
+                        <span class="chip">7 мимических паттернов</span>
+                        <span class="chip">порог модели 80%</span>
                     </div>
                 </div>
             </section>
@@ -81,8 +81,11 @@
                         Для упражнения нужен доступ к камере. Видео обрабатывается только в браузере: на сервер отправляется лишь итоговая уверенность модели и длительность удержания.
                         Кадры не сохраняются и не передаются.
                     </p>
+                    <p class="mt-2 text-xs leading-relaxed text-muted">
+                        Модель различает семь мимических паттернов и может ошибаться. Уверенность 80% — это порог модели, а не оценка ваших эмоций и не диагноз.
+                    </p>
                     <ul class="mt-3 space-y-1.5 text-xs leading-relaxed text-muted">
-                        <li>• Можно отозвать согласие в любой момент, просто не начиная упражнение.</li>
+                        <li>• Согласие можно отозвать в любой момент — кнопка есть ниже на этой странице.</li>
                         <li>• Если камеры нет — выполните альтернативное задание в модуле «Понимаю других».</li>
                         <li>• Результат не влияет на оценку по другим дисциплинам.</li>
                     </ul>
@@ -204,6 +207,16 @@
                 <p class="mt-2 text-xs leading-relaxed text-ink-soft">Если камера недоступна, выполните фото-кейсы в модуле «Понимаю других» — навык тот же: замечать и называть эмоцию.</p>
                 <a href="{{ route('modules.index') }}" class="btn-ghost mt-2 px-0 text-xs text-brand hover:bg-transparent">К модулям →</a>
             </div>
+
+            @if($hasConsent)
+                <form method="POST" action="{{ route('camera.consent.revoke') }}" class="rounded-3xl border border-line/60 bg-surface/50 p-5">
+                    @csrf
+                    @method('DELETE')
+                    <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Согласие</p>
+                    <p class="mt-2 text-xs leading-relaxed text-ink-soft">Можно отозвать доступ к камере в любой момент. Это не удалит уже сохранённый прогресс практикума.</p>
+                    <button type="submit" class="btn-ghost mt-2 px-0 text-xs hover:bg-transparent" style="color: var(--color-rose);">Отозвать согласие</button>
+                </form>
+            @endif
         </aside>
     </div>
 @endsection

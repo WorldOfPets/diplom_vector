@@ -42,7 +42,7 @@ class MotivationScoringService
                 'response' => $response,
                 'score' => $normalized,
                 'max' => 1.0,
-                'ms' => isset($response['ms']) ? (int) $response['ms'] : null,
+                'ms' => isset($response['ms']) ? max(0, min(86400000, (int) $response['ms'])) : null,
             ];
         }
 

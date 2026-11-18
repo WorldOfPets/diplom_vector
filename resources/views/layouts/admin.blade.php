@@ -18,6 +18,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#101828">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="icon" type="image/png" href="{{ asset('favicon-32.png') }}">
     <meta name="description" content="Админ-панель тренажёра «Вектор»: пользователи, контент, аналитика и аудит.">
     <title>@yield('title', 'Админка') — Вектор</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])

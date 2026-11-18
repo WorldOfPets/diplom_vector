@@ -5,12 +5,21 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Certificate;
+use App\Models\Feedback;
 use App\Models\Group;
+use App\Models\ProgressSnapshot;
+use App\Models\Reflection;
+use App\Models\Short;
+use App\Models\ShortLike;
+use App\Models\ShortView;
 use App\Models\TestAttempt;
+use App\Models\TheoryProgress;
 use App\Models\TrainerAttempt;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -49,18 +58,69 @@ class UserController extends Controller
             'specialty' => ['nullable', 'string', 'max:190'],
         ]);
 
+        if (
+            $user->isAdmin()
+            && $data['role'] !== UserRole::Admin->value
+            && User::query()->where('role', UserRole::Admin)->count() <= 1
+        ) {
+            return back()->withErrors([
+                'role' => 'Нельзя снять роль администратора с последнего администратора.',
+            ]);
+        }
+
         $user->update($data);
         AuditLog::record('user.updated', $user, ['role' => $data['role']]);
 
         return back()->with('status', 'Пользователь обновлён.');
     }
 
+    public function destroy(Request $request, User $user): RedirectResponse
+    {
+        if ($user->is($request->user())) {
+            return back()->withErrors(['user' => 'Нельзя удалить собственную учётную запись из админки.']);
+        }
+
+        if ($user->isAdmin() && User::query()->where('role', UserRole::Admin)->count() <= 1) {
+            return back()->withErrors(['user' => 'Нельзя удалить последнего администратора.']);
+        }
+
+        $email = $user->email;
+
+        DB::transaction(function () use ($user): void {
+            $likedShortIds = ShortLike::query()->where('user_id', $user->id)->pluck('short_id');
+
+            ShortLike::query()->where('user_id', $user->id)->delete();
+
+            if ($likedShortIds->isNotEmpty()) {
+                Short::query()
+                    ->whereIn('id', $likedShortIds)
+                    ->where('likes_count', '>', 0)
+                    ->decrement('likes_count');
+            }
+
+            $user->delete();
+        });
+
+        AuditLog::record('user.deleted', null, ['email' => $email]);
+
+        return back()->with('status', 'Пользователь и связанные данные удалены.');
+    }
+
     public function reset(User $user): RedirectResponse
     {
-        TrainerAttempt::query()->where('user_id', $user->id)->delete();
-        TestAttempt::query()->where('user_id', $user->id)->delete();
-        AuditLog::record('user.attempts_reset', $user);
+        DB::transaction(function () use ($user): void {
+            TrainerAttempt::query()->where('user_id', $user->id)->delete();
+            TestAttempt::query()->where('user_id', $user->id)->delete();
+            ShortView::query()->where('user_id', $user->id)->delete();
+            TheoryProgress::query()->where('user_id', $user->id)->delete();
+            ProgressSnapshot::query()->where('user_id', $user->id)->delete();
+            Reflection::query()->where('user_id', $user->id)->delete();
+            Feedback::query()->where('user_id', $user->id)->delete();
+            Certificate::query()->where('user_id', $user->id)->delete();
+        });
 
-        return back()->with('status', 'Попытки пользователя удалены.');
+        AuditLog::record('user.progress_reset', $user);
+
+        return back()->with('status', 'Попытки и прогресс пользователя сброшены.');
     }
 }

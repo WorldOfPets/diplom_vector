@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'body',
     'cover_path',
     'video_url',
+    'video_path',
     'source_url',
     'reading_minutes',
     'sort',
@@ -57,8 +58,34 @@ class TheoryArticle extends Model
         return 'https://rutube.ru/play/embed/'.$matches[1];
     }
 
+    public function hasVideo(): bool
+    {
+        return filled($this->video_url) || filled($this->video_path);
+    }
+
+    public function localVideoPath(): ?string
+    {
+        return filled($this->video_path) ? $this->video_path : null;
+    }
+
+    public function localVideoMime(): string
+    {
+        return str_ends_with(strtolower((string) $this->video_path), '.webm') ? 'video/webm' : 'video/mp4';
+    }
+
+    public function localVideoPoster(): ?string
+    {
+        if ($this->localVideoPath() === null) {
+            return null;
+        }
+
+        $poster = preg_replace('/\.(mp4|webm)$/i', '.jpg', $this->localVideoPath());
+
+        return $poster !== null && is_file(public_path($poster)) ? $poster : null;
+    }
+
     public function hasTrackableVideo(): bool
     {
-        return $this->rutubeEmbedUrl() !== null;
+        return $this->rutubeEmbedUrl() !== null || $this->localVideoPath() !== null;
     }
 }

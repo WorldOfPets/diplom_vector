@@ -72,13 +72,13 @@
             <table class="w-full min-w-[900px] text-left text-xs">
                 <thead class="border-b border-line/70 bg-paper/60 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
                     <tr>
-                        <th class="px-4 py-3">#</th>
-                        <th class="px-4 py-3">Ветвь</th>
-                        <th class="px-4 py-3">Тип</th>
-                        <th class="px-4 py-3">Формулировка</th>
-                        <th class="px-4 py-3">Слож.</th>
-                        <th class="px-4 py-3">Статус</th>
-                        <th class="px-4 py-3"></th>
+                        <th scope="col" class="px-4 py-3">#</th>
+                        <th scope="col" class="px-4 py-3">Ветвь</th>
+                        <th scope="col" class="px-4 py-3">Тип</th>
+                        <th scope="col" class="px-4 py-3">Формулировка</th>
+                        <th scope="col" class="px-4 py-3">Слож.</th>
+                        <th scope="col" class="px-4 py-3">Статус</th>
+                        <th scope="col" class="px-4 py-3"><span class="sr-only">Действия</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line/60">

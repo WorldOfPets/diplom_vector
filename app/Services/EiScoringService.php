@@ -32,7 +32,7 @@ class EiScoringService
                 'response' => $response,
                 'score' => $score,
                 'max' => $max,
-                'ms' => isset($response['ms']) ? (int) $response['ms'] : null,
+                'ms' => isset($response['ms']) ? max(0, min(86400000, (int) $response['ms'])) : null,
             ];
 
             $branch = $item->branch;

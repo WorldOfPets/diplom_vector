@@ -88,8 +88,8 @@ class ProfileController extends Controller
                 'passed' => $trainerAttempts->where('passed', true)->count(),
             ],
             'diaryStats' => [
-                'entries' => $diaryEntries->count(),
-                'days' => $diaryEntries->pluck('entry_date')->unique()->count(),
+                'entries' => DiaryEntry::query()->where('user_id', $user->id)->count(),
+                'days' => DiaryEntry::query()->where('user_id', $user->id)->distinct()->count('entry_date'),
                 'top_emotion' => $emotionCounts->first()['label'] ?? null,
             ],
             'emotionCounts' => $emotionCounts,

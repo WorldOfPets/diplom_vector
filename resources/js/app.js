@@ -45,6 +45,8 @@ document.addEventListener('alpine:init', () => {
         liked: Boolean(options.liked),
         likes: Number(options.likes ?? 0),
         viewed: Boolean(options.viewed),
+        hasAudio: Boolean(options.hasAudio),
+        muted: true,
         likeUrl: options.likeUrl,
         viewUrl: options.viewUrl,
         csrf: options.csrf,
@@ -56,6 +58,10 @@ document.addEventListener('alpine:init', () => {
         observer: null,
 
         init() {
+            if (this.viewed) {
+                this.progress = 100;
+            }
+
             if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
                 return;
             }
@@ -94,6 +100,8 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            video.muted = this.muted;
+
             const attempt = video.play();
             attempt?.then(() => {
                 this.playing = true;
@@ -118,6 +126,14 @@ document.addEventListener('alpine:init', () => {
                 this.play();
             } else {
                 this.pause();
+            }
+        },
+
+        toggleMute() {
+            this.muted = !this.muted;
+
+            if (this.$refs.video) {
+                this.$refs.video.muted = this.muted;
             }
         },
 
@@ -319,6 +335,78 @@ document.addEventListener('alpine:init', () => {
                         'X-CSRF-TOKEN': this.csrf,
                     },
                     body: JSON.stringify({ percent: Math.max(80, Math.min(100, Math.round(this.percent))) }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                this.completed = true;
+                this.percent = 100;
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.saving = false;
+            }
+        },
+    }));
+
+    Alpine.data('theoryLocalVideo', (options) => ({
+        completed: Boolean(options.completed),
+        percent: Number(options.initialPercent ?? (options.completed ? 100 : 0)),
+        watched: 0,
+        lastTime: null,
+        saving: false,
+        url: options.url,
+        csrf: options.csrf,
+
+        onTimeUpdate(event) {
+            if (this.completed) {
+                return;
+            }
+
+            const video = event.target;
+
+            if (!video?.duration || !Number.isFinite(video.duration)) {
+                return;
+            }
+
+            const time = video.currentTime;
+
+            if (this.lastTime !== null) {
+                const delta = time - this.lastTime;
+
+                if (delta > 0 && delta <= 1.5) {
+                    this.watched += delta;
+                }
+            }
+
+            this.lastTime = time;
+
+            const current = Math.min(100, (this.watched / video.duration) * 100);
+            this.percent = Math.max(this.percent, Math.round(current));
+
+            if (current >= 80) {
+                this.complete();
+            }
+        },
+
+        async complete() {
+            if (this.completed || this.saving) {
+                return;
+            }
+
+            this.saving = true;
+
+            try {
+                const response = await fetch(this.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    body: JSON.stringify({ percent: 80 }),
                 });
 
                 if (!response.ok) {

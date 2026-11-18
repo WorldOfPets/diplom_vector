@@ -82,7 +82,7 @@ class ShortController extends Controller
 
             if ($like !== null) {
                 $like->delete();
-                $short->decrement('likes_count');
+                Short::query()->whereKey($short->id)->where('likes_count', '>', 0)->decrement('likes_count');
                 $liked = false;
             } else {
                 ShortLike::query()->create([

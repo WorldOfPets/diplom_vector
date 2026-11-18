@@ -88,6 +88,7 @@ Route::middleware(['auth', 'onboarded'])->group(function (): void {
 
     Route::get('/camera', [CameraController::class, 'show'])->name('camera.show');
     Route::post('/camera/consent', [CameraController::class, 'consent'])->name('camera.consent');
+    Route::delete('/camera/consent', [CameraController::class, 'revokeConsent'])->name('camera.consent.revoke');
     Route::post('/camera/progress', [CameraController::class, 'progress'])->name('camera.progress');
     Route::post('/camera/submit', [CameraController::class, 'submit'])->name('camera.submit');
 });
@@ -98,6 +99,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::post('/users/{user}/reset', [AdminUserController::class, 'reset'])->name('users.reset');
+    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index');
     Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');

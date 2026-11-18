@@ -77,7 +77,7 @@ class DiaryController extends Controller
             'emotion_id' => ['required', 'integer', 'exists:emotions,id'],
             'intensity' => ['required', 'integer', 'between:1,5'],
             'cause' => ['nullable', 'string', 'max:120'],
-            'body_zones' => ['nullable', 'array'],
+            'body_zones' => ['nullable', 'array', 'max:12'],
             'body_zones.*' => ['string', 'max:40'],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);

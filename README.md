@@ -2,6 +2,8 @@
 
 Цифровой тренажёр мотивации к профессиональному обучению через развитие эмоционального интеллекта. Педагогический инструмент для студентов СПО: диагностика, интерактивные тренажёры, дневник эмоций и личная динамика.
 
+Production: **https://vectoredu.space** (reg.ru, PHP 8.5, SQLite, Let's Encrypt, PWA).
+
 ## Что внутри
 
 - Вход только через Яндекс ID (в production).
@@ -70,7 +72,7 @@ PWA-часть:
 - `public/sw.js` — кэш статики и офлайн-заглушка; приватные страницы и админка не кэшируются.
 - `public/offline.html` — экран при отсутствии сети.
 - Регистрация service worker — в `resources/js/app.js`, только в production-сборке.
-- Иконки — `public/icons` (192, 512, maskable, apple-touch).
+- Иконки — `public/app-icons` (192, 512, maskable, apple-touch).
 
 Для проверки PWA откройте production-сборку на HTTPS или `localhost` и установите приложение через меню браузера.
 
@@ -217,7 +219,7 @@ php artisan test
 - `app/Support/DiaryCipher.php` — шифрование записей дневника.
 - `resources/views/components/preference-modal.blade.php` — первый выбор темы и тона.
 - `public/manifest.json`, `public/sw.js`, `public/offline.html` — PWA.
-- `public/icons` — иконки приложения.
+- `public/app-icons` — иконки приложения.
 - `.github/workflows/ci.yml` — CI для GitHub Actions.
 - `resources/views/profile` — профиль, личные данные и настройки.
 - `app/Services/Trainers/Engines` — движки тренажёров.

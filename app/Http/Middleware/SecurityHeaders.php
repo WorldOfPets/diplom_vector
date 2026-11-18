@@ -17,7 +17,7 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
 
-        if ($request->isSecure()) {
+        if ($request->isSecure() && ! $response->headers->has('Strict-Transport-Security')) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000');
         }
 

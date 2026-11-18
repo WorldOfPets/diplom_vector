@@ -1,11 +1,11 @@
-const CACHE_NAME = 'vektor-static-v2';
+const CACHE_NAME = 'vektor-static-v3';
 const PRECACHE = [
     '/offline.html',
     '/manifest.json',
-    '/icons/icon-192.png',
-    '/icons/icon-512.png',
-    '/icons/maskable-512.png',
-    '/icons/apple-touch-icon.png',
+    '/app-icons/icon-192.png',
+    '/app-icons/icon-512.png',
+    '/app-icons/maskable-512.png',
+    '/app-icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -52,7 +52,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     const isBuildAsset = url.pathname.startsWith('/build/');
-    const isIcon = url.pathname.startsWith('/icons/');
+    const isIcon = url.pathname.startsWith('/app-icons/');
     const isImage = request.destination === 'image';
 
     if (!isBuildAsset && !isIcon && !isImage) {

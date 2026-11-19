@@ -145,6 +145,8 @@
                         <textarea id="note" name="note" rows="2" class="textarea" placeholder="Что хочется запомнить?">{{ old('note') }}</textarea>
                     </div>
 
+                    <p class="text-[10px] leading-relaxed text-muted">Запись проверяется по словарю: случайный набор букв не сохранится.</p>
+
                     <button type="submit" class="btn-primary w-full py-3">Сохранить запись</button>
                 </form>
             </section>

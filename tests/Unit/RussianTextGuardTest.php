@@ -39,4 +39,14 @@ class RussianTextGuardTest extends TestCase
 
         $this->assertSame([], $guard->suspiciousWords('Я чувствую кринж, но говорю об этом прямо'));
     }
+
+    public function test_suspicious_words_are_merged_across_fields(): void
+    {
+        $guard = new RussianTextGuard;
+
+        $this->assertSame(
+            ['фывап', 'билеберда'],
+            $guard->suspiciousFrom(['фывап', 'билеберда', 'нормальный текст', null, '']),
+        );
+    }
 }

@@ -50,6 +50,29 @@ final class RussianTextGuard
     }
 
     /**
+     * Возвращает незнакомые слова из набора текстов, если их больше половины.
+     *
+     * @param  iterable<string|null>  $texts
+     * @return list<string>
+     */
+    public function suspiciousFrom(iterable $texts): array
+    {
+        $suspicious = [];
+
+        foreach ($texts as $text) {
+            if (! is_string($text) || trim($text) === '') {
+                continue;
+            }
+
+            foreach ($this->suspiciousWords($text) as $word) {
+                $suspicious[$word] = true;
+            }
+        }
+
+        return array_keys($suspicious);
+    }
+
+    /**
      * @return list<string>
      */
     private function words(string $text): array

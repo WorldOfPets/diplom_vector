@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\DiaryEntry;
 use App\Models\Emotion;
+use App\Support\RussianTextGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DiaryController extends Controller
@@ -94,6 +96,8 @@ class DiaryController extends Controller
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $this->guardFreeText($data);
+
         DiaryEntry::query()->updateOrCreate(
             [
                 'user_id' => $request->user()->id,
@@ -121,5 +125,30 @@ class DiaryController extends Controller
         $entry->delete();
 
         return redirect()->route('diary.index')->with('status', 'Запись удалена.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function guardFreeText(array $data): void
+    {
+        $guard = app(RussianTextGuard::class);
+        $errors = [];
+
+        foreach (['cause' => 'Что вызвало', 'note' => 'Заметка'] as $field => $label) {
+            $words = $guard->suspiciousWords((string) ($data[$field] ?? ''));
+
+            if ($words === []) {
+                continue;
+            }
+
+            $shown = array_slice($words, 0, 5);
+
+            $errors[$field] = 'Поле «'.$label.'»: похоже на случайный набор букв — «'.implode('», «', $shown).'». Проверьте, пожалуйста, текст.';
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 }

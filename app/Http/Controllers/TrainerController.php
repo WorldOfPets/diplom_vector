@@ -283,19 +283,13 @@ class TrainerController extends Controller
         }
 
         $guard = app(RussianTextGuard::class);
-        $suspicious = [];
-
-        foreach ($values as $value) {
-            foreach ($guard->suspiciousWords($value) as $word) {
-                $suspicious[$word] = true;
-            }
-        }
+        $suspicious = $guard->suspiciousFrom($values);
 
         if ($suspicious === []) {
             return;
         }
 
-        $words = array_slice(array_keys($suspicious), 0, 5);
+        $words = array_slice($suspicious, 0, 5);
 
         throw ValidationException::withMessages([
             'response' => 'Похоже, часть текста — случайный набор букв: «'.implode('», «', $words).'». Проверьте, пожалуйста, написание и попробуйте снова.',

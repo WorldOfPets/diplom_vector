@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'title',
     'excerpt',
     'body',
+    'task',
     'cover_path',
     'video_url',
     'video_path',
@@ -28,6 +29,7 @@ class TheoryArticle extends Model
     protected function casts(): array
     {
         return [
+            'task' => 'array',
             'reading_minutes' => 'integer',
             'sort' => 'integer',
             'is_published' => 'boolean',
@@ -61,6 +63,33 @@ class TheoryArticle extends Model
     public function hasVideo(): bool
     {
         return filled($this->video_url) || filled($this->video_path);
+    }
+
+    public function hasTask(): bool
+    {
+        return is_array($this->task) && filled($this->task['text'] ?? null) && filled($this->task['answers'] ?? null);
+    }
+
+    public function firstStepCompleted(?TheoryProgress $progress): bool
+    {
+        if ($progress === null) {
+            return false;
+        }
+
+        return $this->hasTrackableVideo()
+            ? $progress->video_completed_at !== null
+            : $progress->read_at !== null;
+    }
+
+    public function completedSteps(?TheoryProgress $progress): int
+    {
+        if ($progress === null) {
+            return 0;
+        }
+
+        return (int) $this->firstStepCompleted($progress)
+            + (int) ($progress->source_opened_at !== null)
+            + (int) ($progress->task_completed_at !== null);
     }
 
     public function localVideoPath(): ?string

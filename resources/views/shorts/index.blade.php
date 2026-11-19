@@ -16,7 +16,7 @@
 
 @section('content')
     <div class="mx-auto max-w-md sm:mx-0 sm:max-w-none">
-        <div class="flex flex-col gap-3">
+        <div class="hidden flex-col gap-3 lg:flex">
             <div>
                 <p class="section-eyebrow">Мини-видео</p>
                 <h1 class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">Шортсы</h1>
@@ -37,11 +37,11 @@
                 <a href="{{ route('modules.index') }}" class="btn-primary px-4 py-2.5 text-xs">К модулям</a>
             </x-empty-state>
         @else
-            <div class="mx-auto mt-5 max-w-md" x-data="shortsFeed({ count: {{ $shorts->count() }} })">
+            <div class="mx-auto mt-0 max-w-md lg:mt-5" x-data="shortsFeed({ count: {{ $shorts->count() }} })">
                 <div
                     x-ref="feed"
                     data-shorts-feed
-                    class="shorts-feed flex h-[min(78dvh,44rem)] snap-y snap-mandatory flex-col overflow-y-auto overscroll-contain rounded-[2rem]"
+                    class="shorts-feed flex h-[calc(100dvh-10rem)] snap-y snap-mandatory flex-col overflow-y-auto overscroll-contain rounded-[2rem] lg:h-[min(78dvh,44rem)]"
                     aria-label="Лента шортсов"
                     @scroll.passive="onScroll"
                     @short-active.window="active = $event.detail.index"
@@ -140,7 +140,7 @@
                     @endforeach
                 </div>
 
-                <div class="mt-3 flex items-center justify-between gap-3">
+                <div class="mt-3 hidden items-center justify-between gap-3 lg:flex">
                     <p class="text-[10px] font-semibold text-muted">Свайп вверх или колесо мыши — следующий ролик. Одновременно играет только один.</p>
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] font-bold tabular-nums text-muted" x-text="`${active + 1} / ${count}`"></span>
@@ -154,7 +154,7 @@
                 </div>
             </div>
 
-            <p class="mt-5 text-center text-[11px] leading-relaxed text-muted sm:text-left">
+            <p class="mt-5 hidden text-center text-[11px] leading-relaxed text-muted sm:text-left lg:block">
                 Видео можно смотреть со звуком или без. Комментариев нет. Лайк — не оценка, а сигнал «мне откликается».
             </p>
         @endif

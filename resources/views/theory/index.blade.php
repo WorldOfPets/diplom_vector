@@ -9,7 +9,7 @@
             <h1 class="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{{ tone('theory.index.title') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{{ tone('theory.index.lead') }}</p>
         </div>
-        <span class="chip shrink-0">{{ $readIds->count() }}/{{ $articles->count() }} прочитано</span>
+        <span class="chip shrink-0">{{ $stepsDone }}/{{ $stepsTotal }} шагов · 3 на материал</span>
     </div>
 
     <div class="mt-4 flex flex-wrap gap-2">
@@ -25,7 +25,9 @@
     @else
         <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @foreach($articles as $article)
-                @php $isRead = $readIds->contains($article->id); @endphp
+                @php
+                    $steps = $article->completedSteps($progress->get($article->id));
+                @endphp
                 <a href="{{ route('theory.show', $article) }}" class="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-soft">
                     <div class="relative aspect-[16/9] bg-gradient-to-br from-brand-soft via-paper to-lilac-soft">
                         @if($article->cover_path)
@@ -33,9 +35,12 @@
                         @else
                             <div class="flex h-full items-center justify-center text-3xl">📖</div>
                         @endif
-                        @if($isRead)
-                            <span class="absolute right-3 top-3 chip border-mint/20 bg-mint-soft text-mint-ink"><x-icon name="check" class="h-3 w-3" /> прочитано</span>
-                        @endif
+                        <span class="absolute right-3 top-3 chip {{ $steps === 3 ? 'border-mint/20 bg-mint-soft text-mint-ink' : '' }}">
+                            @if($steps === 3)
+                                <x-icon name="check" class="h-3 w-3" />
+                            @endif
+                            {{ $steps }}/3
+                        </span>
                     </div>
                     <div class="flex flex-1 flex-col p-5">
                         <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
@@ -43,10 +48,13 @@
                             @if($article->hasVideo())
                                 <span>· видео</span>
                             @endif
+                            @if($article->hasTask())
+                                <span>· задание</span>
+                            @endif
                         </div>
                         <h2 class="mt-2 text-base font-extrabold leading-snug">{{ $article->title }}</h2>
                         <p class="mt-1 flex-1 text-xs leading-relaxed text-muted">{{ $article->excerpt }}</p>
-                        <p class="mt-3 text-[11px] font-bold text-brand">Читать →</p>
+                        <p class="mt-3 text-[11px] font-bold text-brand">Открыть материал →</p>
                     </div>
                 </a>
             @endforeach

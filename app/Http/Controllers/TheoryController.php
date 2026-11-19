@@ -6,6 +6,7 @@ use App\Models\TheoryArticle;
 use App\Models\TheoryProgress;
 use App\Services\ContentProgressService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,14 +19,20 @@ class TheoryController extends Controller
             ->orderBy('sort')
             ->get();
 
-        $readIds = TheoryProgress::query()
+        $progress = TheoryProgress::query()
             ->where('user_id', $request->user()->id)
-            ->whereNotNull('read_at')
-            ->pluck('theory_article_id');
+            ->whereIn('theory_article_id', $articles->pluck('id'))
+            ->get()
+            ->keyBy('theory_article_id');
+
+        $stepsTotal = $articles->count() * 3;
+        $stepsDone = $articles->sum(fn (TheoryArticle $article): int => $article->completedSteps($progress->get($article->id)));
 
         return view('theory.index', [
             'articles' => $articles,
-            'readIds' => $readIds,
+            'progress' => $progress,
+            'stepsDone' => $stepsDone,
+            'stepsTotal' => $stepsTotal,
         ]);
     }
 
@@ -43,6 +50,9 @@ class TheoryController extends Controller
             'isRead' => $article->isReadBy($request->user()),
             'videoCompleted' => $progress->video_completed_at !== null,
             'videoProgress' => (float) ($progress->video_progress ?? 0),
+            'sourceOpened' => $progress->source_opened_at !== null,
+            'taskCompleted' => $progress->task_completed_at !== null,
+            'completedSteps' => $article->completedSteps($progress),
             'next' => TheoryArticle::query()
                 ->published()
                 ->where('sort', '>', $article->sort)
@@ -92,6 +102,86 @@ class TheoryController extends Controller
         return response()->json([
             'ok' => true,
             'percent' => (float) $progress->video_progress,
+        ]);
+    }
+
+    public function openSource(Request $request, TheoryArticle $article): RedirectResponse
+    {
+        abort_unless($article->is_published, 404);
+
+        $sourceUrl = (string) $article->source_url;
+
+        if (! str_starts_with($sourceUrl, 'http://') && ! str_starts_with($sourceUrl, 'https://')) {
+            return redirect()
+                ->route('theory.show', $article)
+                ->withErrors(['source' => 'У этого материала пока нет доступного первоисточника.']);
+        }
+
+        $progress = TheoryProgress::query()->firstOrNew([
+            'user_id' => $request->user()->id,
+            'theory_article_id' => $article->id,
+        ]);
+
+        if ($progress->source_opened_at === null) {
+            $progress->source_opened_at = now();
+            $progress->save();
+            app(ContentProgressService::class)->sync($request->user());
+        }
+
+        $encodedSourceUrl = preg_replace_callback(
+            '/[^\x20-\x7E]/u',
+            static fn (array $matches): string => rawurlencode($matches[0]),
+            $sourceUrl,
+        ) ?? $sourceUrl;
+
+        return redirect()->away($encodedSourceUrl);
+    }
+
+    public function completeTask(Request $request, TheoryArticle $article): JsonResponse
+    {
+        abort_unless($article->is_published && $article->hasTask(), 404);
+
+        $data = $request->validate([
+            'answers' => ['required', 'array'],
+            'answers.*' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $expected = $article->task['answers'] ?? [];
+        $submitted = $data['answers'] ?? [];
+
+        $normalize = static fn (mixed $value): string => mb_strtolower(trim((string) $value));
+
+        if (count($submitted) !== count($expected)) {
+            return response()->json([
+                'message' => 'Заполните все пропуски.',
+                'ok' => false,
+            ], 422);
+        }
+
+        foreach ($expected as $key => $answer) {
+            if (! array_key_exists($key, $submitted) || $normalize($submitted[$key]) !== $normalize($answer)) {
+                return response()->json([
+                    'message' => 'Есть слова не на своих местах. Попробуйте ещё раз.',
+                    'ok' => false,
+                ], 422);
+            }
+        }
+
+        $progress = TheoryProgress::query()->firstOrNew([
+            'user_id' => $request->user()->id,
+            'theory_article_id' => $article->id,
+        ]);
+
+        if ($progress->task_completed_at === null) {
+            $progress->task_completed_at = now();
+            $progress->save();
+            app(ContentProgressService::class)->sync($request->user());
+        }
+
+        return response()->json([
+            'ok' => true,
+            'completed' => true,
+            'message' => 'Задание выполнено: все слова на своих местах.',
         ]);
     }
 }

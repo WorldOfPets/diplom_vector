@@ -77,11 +77,15 @@ class TheoryController extends Controller
             'slug' => ['nullable', 'string', 'max:180'],
             'excerpt' => ['nullable', 'string', 'max:500'],
             'body' => ['nullable', 'string'],
+            'task_text' => ['nullable', 'string', 'max:4000'],
+            'task_answers' => ['nullable', 'string', 'max:3000'],
+            'task_options' => ['nullable', 'string', 'max:3000'],
+            'remove_task' => ['nullable', 'boolean'],
             'cover_path' => ['nullable', 'string', 'max:255'],
             'video_url' => ['nullable', 'url', 'max:255'],
             'video_file' => ['nullable', 'file', 'mimetypes:video/mp4,video/webm', 'mimes:mp4,webm', 'max:204800'],
             'remove_video' => ['nullable', 'boolean'],
-            'source_url' => ['nullable', 'url', 'max:255'],
+            'source_url' => ['nullable', 'string', 'max:255', 'regex:~^https?://~'],
             'reading_minutes' => ['required', 'integer', 'between:1,120'],
             'sort' => ['required', 'integer', 'between:0,1000'],
             'is_published' => ['nullable', 'boolean'],
@@ -110,12 +114,55 @@ class TheoryController extends Controller
             'slug' => $slug,
             'excerpt' => $data['excerpt'] ?? null,
             'body' => $data['body'] ?? null,
+            'task' => $this->taskFromInput($request, $data),
             'cover_path' => $data['cover_path'] ?? null,
             'video_url' => $data['video_url'] ?? null,
             'source_url' => $data['source_url'] ?? null,
             'reading_minutes' => $data['reading_minutes'],
             'sort' => $data['sort'],
             'is_published' => $request->boolean('is_published'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{text: string, answers: array<string, string>, options: array<int, string>}|null
+     */
+    private function taskFromInput(Request $request, array $data): ?array
+    {
+        if ($request->boolean('remove_task') || ! filled($data['task_text'] ?? null)) {
+            return null;
+        }
+
+        $answers = [];
+
+        foreach (preg_split('/\r\n|\r|\n/', (string) ($data['task_answers'] ?? '')) as $line) {
+            if (! str_contains($line, '=')) {
+                continue;
+            }
+
+            [$key, $value] = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+
+            if ($key !== '' && $value !== '') {
+                $answers[$key] = $value;
+            }
+        }
+
+        $options = array_values(array_filter(array_map(
+            static fn (string $option): string => trim($option),
+            explode(',', (string) ($data['task_options'] ?? '')),
+        )));
+
+        if ($answers === [] || $options === []) {
+            return null;
+        }
+
+        return [
+            'text' => trim((string) $data['task_text']),
+            'answers' => $answers,
+            'options' => $options,
         ];
     }
 

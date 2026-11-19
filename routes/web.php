@@ -80,8 +80,10 @@ Route::middleware(['auth', 'onboarded'])->group(function (): void {
 
     Route::get('/theory', [TheoryController::class, 'index'])->name('theory.index');
     Route::get('/theory/{article:slug}', [TheoryController::class, 'show'])->name('theory.show');
+    Route::get('/theory/{article:slug}/source', [TheoryController::class, 'openSource'])->name('theory.source');
     Route::post('/theory/{article:slug}/read', [TheoryController::class, 'markRead'])->name('theory.read');
     Route::post('/theory/{article:slug}/video', [TheoryController::class, 'markVideo'])->name('theory.video');
+    Route::post('/theory/{article:slug}/task', [TheoryController::class, 'completeTask'])->name('theory.task');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');

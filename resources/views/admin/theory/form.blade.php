@@ -46,6 +46,36 @@
             </div>
 
             <div class="card p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-sm font-bold">Задание с пропусками</p>
+                    @if($article?->hasTask())
+                        <label class="flex items-center gap-1.5 text-[10px] font-semibold text-muted">
+                            <input type="checkbox" name="remove_task" value="1" class="h-3.5 w-3.5 rounded border-line text-rose">
+                            удалить задание
+                        </label>
+                    @endif
+                </div>
+                <p class="mt-1 text-[10px] leading-relaxed text-muted">
+                    В тексте используйте пропуски &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125; и так далее. Ответы — по одному на строку в формате <span class="font-mono">1=слово</span>. Без задания материал даст только два шага прогресса.
+                </p>
+                <div class="mt-4">
+                    <label class="label" for="task_text">Краткое содержание с пропусками</label>
+                    <textarea id="task_text" name="task_text" rows="5" class="textarea">{{ old('task_text', data_get($article?->task, 'text', '')) }}</textarea>
+                </div>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="label" for="task_answers">Ответы</label>
+                        <textarea id="task_answers" name="task_answers" rows="4" class="textarea font-mono text-[11px]" placeholder="1=слово&#10;2=другое">{{ old('task_answers', collect(data_get($article?->task, 'answers', []))->map(fn ($answer, $key) => $key.'='.$answer)->implode("\n")) }}</textarea>
+                    </div>
+                    <div>
+                        <label class="label" for="task_options">Слова для выбора</label>
+                        <textarea id="task_options" name="task_options" rows="4" class="textarea" placeholder="слово, другое, лишнее">{{ old('task_options', implode(', ', data_get($article?->task, 'options', []))) }}</textarea>
+                        <p class="mt-1 text-[10px] leading-relaxed text-muted">Через запятую. Добавьте 2–4 лишних слова.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-5">
                 <p class="text-sm font-bold">Медиа и ссылки</p>
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>

@@ -94,6 +94,8 @@ class ContentProgressTest extends TestCase
             'user_id' => $user->id,
             'theory_article_id' => $article->id,
             'read_at' => now(),
+            'source_opened_at' => now(),
+            'task_completed_at' => now(),
         ]);
 
         TrainerAttempt::query()->create([
@@ -148,8 +150,8 @@ class ContentProgressTest extends TestCase
 
         $summary = $service->sync($user);
 
-        $this->assertSame(18, $summary['done']);
-        $this->assertSame(18, $summary['total']);
+        $this->assertSame(20, $summary['done']);
+        $this->assertSame(20, $summary['total']);
         $this->assertSame(100.0, (float) $summary['percent']);
         $this->assertTrue($summary['certificate_ready']);
 

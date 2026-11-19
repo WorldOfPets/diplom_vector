@@ -177,8 +177,16 @@ document.addEventListener('alpine:init', () => {
         lastTime: null,
         observer: null,
         onOtherPlay: null,
+        onMuteChange: null,
 
         init() {
+            try {
+                const storedMuted = window.localStorage.getItem('vektor.shorts.muted');
+                this.muted = storedMuted === null ? true : storedMuted === '1';
+            } catch {
+                this.muted = true;
+            }
+
             if (this.viewed) {
                 this.progress = 100;
             }
@@ -189,7 +197,16 @@ document.addEventListener('alpine:init', () => {
                 }
             };
 
+            this.onMuteChange = (event) => {
+                this.muted = Boolean(event.detail?.muted);
+
+                if (this.$refs.video) {
+                    this.$refs.video.muted = this.muted;
+                }
+            };
+
             window.addEventListener('short-playing', this.onOtherPlay);
+            window.addEventListener('short-muted', this.onMuteChange);
 
             if (!('IntersectionObserver' in window)) {
                 return;
@@ -264,6 +281,16 @@ document.addEventListener('alpine:init', () => {
 
         toggleMute() {
             this.muted = !this.muted;
+
+            try {
+                window.localStorage.setItem('vektor.shorts.muted', this.muted ? '1' : '0');
+            } catch {
+                // localStorage can be unavailable in private mode.
+            }
+
+            window.dispatchEvent(new CustomEvent('short-muted', {
+                detail: { muted: this.muted },
+            }));
 
             if (this.$refs.video) {
                 this.$refs.video.muted = this.muted;
@@ -359,6 +386,10 @@ document.addEventListener('alpine:init', () => {
 
             if (this.onOtherPlay) {
                 window.removeEventListener('short-playing', this.onOtherPlay);
+            }
+
+            if (this.onMuteChange) {
+                window.removeEventListener('short-muted', this.onMuteChange);
             }
         },
     }));
@@ -508,6 +539,7 @@ document.addEventListener('alpine:init', () => {
 
                 this.completed = true;
                 this.percent = 100;
+                window.dispatchEvent(new CustomEvent('theory-video-completed'));
             } catch (error) {
                 console.error(error);
             } finally {
@@ -597,10 +629,157 @@ document.addEventListener('alpine:init', () => {
 
                 this.completed = true;
                 this.percent = 100;
+                window.dispatchEvent(new CustomEvent('theory-video-completed'));
             } catch (error) {
                 console.error(error);
             } finally {
                 this.saving = false;
+            }
+        },
+    }));
+
+    Alpine.data('theoryTask', (options) => ({
+        url: options.url,
+        csrf: options.csrf,
+        options: (options.options ?? []).map((word) => ({ word, used: false })),
+        blankIds: options.blankIds ?? [],
+        answers: options.completed ? { ...(options.filled ?? {}) } : {},
+        selected: null,
+        completed: Boolean(options.completed),
+        busy: false,
+        error: '',
+
+        init() {
+            if (!this.completed) {
+                return;
+            }
+
+            const filled = Object.values(this.answers);
+
+            this.options.forEach((option) => {
+                option.used = filled.includes(option.word);
+            });
+        },
+
+        select(option) {
+            if (this.completed || option.used) {
+                return;
+            }
+
+            this.selected = this.selected === option.word ? null : option.word;
+            this.error = '';
+        },
+
+        dragStart(option, event) {
+            if (this.completed || option.used) {
+                event.preventDefault();
+                return;
+            }
+
+            this.selected = option.word;
+            event.dataTransfer.setData('text/plain', option.word);
+            event.dataTransfer.effectAllowed = 'move';
+        },
+
+        dropBlank(id, event) {
+            this.place(id, event.dataTransfer.getData('text/plain'));
+        },
+
+        tapBlank(id) {
+            if (this.completed) {
+                return;
+            }
+
+            if (this.selected) {
+                this.place(id, this.selected);
+
+                return;
+            }
+
+            if (this.answers[id]) {
+                this.remove(id);
+            }
+        },
+
+        place(id, word) {
+            if (!word || this.completed || this.answers[id] === word) {
+                return;
+            }
+
+            const option = this.options.find((item) => item.word === word && !item.used);
+
+            if (!option) {
+                return;
+            }
+
+            if (this.answers[id]) {
+                this.release(this.answers[id]);
+            }
+
+            this.answers[id] = word;
+            option.used = true;
+            this.selected = null;
+            this.error = '';
+        },
+
+        remove(id) {
+            if (this.completed || !this.answers[id]) {
+                return;
+            }
+
+            this.release(this.answers[id]);
+
+            const next = { ...this.answers };
+            delete next[id];
+            this.answers = next;
+            this.error = '';
+        },
+
+        release(word) {
+            const option = this.options.find((item) => item.word === word);
+
+            if (option) {
+                option.used = false;
+            }
+        },
+
+        async check() {
+            if (this.busy || this.completed) {
+                return;
+            }
+
+            this.busy = true;
+            this.error = '';
+
+            try {
+                const response = await fetch(this.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    body: JSON.stringify({ answers: this.answers }),
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    this.error = data.message || 'Проверьте слова и попробуйте ещё раз.';
+
+                    return;
+                }
+
+                this.completed = true;
+                this.options.forEach((option) => {
+                    option.used = true;
+                });
+                window.dispatchEvent(new CustomEvent('theory-task-completed'));
+            } catch (error) {
+                console.error(error);
+                this.error = 'Не удалось проверить задание. Попробуйте ещё раз.';
+            } finally {
+                this.busy = false;
             }
         },
     }));

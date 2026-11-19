@@ -43,6 +43,12 @@ class ContentProgressService
 
         $theoryArticles = TheoryArticle::query()->published()->get(['id', 'video_url', 'video_path']);
         $theoryIds = $theoryArticles->pluck('id');
+        $theoryProgress = TheoryProgress::query()
+            ->where('user_id', $user->id)
+            ->whereIn('theory_article_id', $theoryIds)
+            ->get()
+            ->keyBy('theory_article_id');
+        $theoryTotal = $theoryArticles->count() * 3;
         $testIds = Test::query()->where('is_active', true)->pluck('id');
         $shortIds = Short::query()->published()->pluck('id');
 
@@ -53,18 +59,9 @@ class ContentProgressService
             ->distinct()
             ->count('trainer_id');
 
-        $theoryDone = TheoryProgress::query()
-            ->where('user_id', $user->id)
-            ->whereNotNull('read_at')
-            ->whereIn('theory_article_id', $theoryIds)
-            ->get()
-            ->filter(function (TheoryProgress $progress) use ($theoryArticles): bool {
-                $article = $theoryArticles->firstWhere('id', $progress->theory_article_id);
-
-                return $article !== null
-                    && (! $article->hasTrackableVideo() || $progress->video_completed_at !== null);
-            })
-            ->count();
+        $theoryDone = $theoryArticles->sum(
+            fn (TheoryArticle $article): int => $article->completedSteps($theoryProgress->get($article->id)),
+        );
 
         $testsDone = TestAttempt::query()
             ->where('user_id', $user->id)
@@ -92,7 +89,7 @@ class ContentProgressService
 
         $categories = [
             $this->category('shorts', 'Просмотрено', 'мини-видео', $shortsDone, $shortIds->count(), 'var(--color-coral-ink)', 'play'),
-            $this->category('theory', 'Изучено', 'статьи теории', $theoryDone, $theoryIds->count(), 'var(--color-amber-ink)', 'book'),
+            $this->category('theory', 'Изучено', 'шаги теории · 3 на материал', $theoryDone, $theoryTotal, 'var(--color-amber-ink)', 'book'),
             $this->category('diary', 'Дневник', 'дней практики', min(7, $diaryDays), 7, 'var(--color-mint-ink)', 'calendar'),
             $this->category('trainers', 'Пройдено', 'тренажёры (кроме «Мимики»)', $trainersDone, $trainerIds->count(), 'var(--color-brand-deep)', 'sparkles'),
             $this->category('mimic', 'Мимика', 'эмоций', min(7, $mimicDone), 7, 'var(--color-lilac-ink)', 'camera'),

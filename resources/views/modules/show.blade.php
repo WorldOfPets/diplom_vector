@@ -68,6 +68,10 @@
                     $isCamera = $trainer->engine === 'camera';
                     $href = $isCamera ? route('camera.show') : route('trainers.show', $trainer);
                     $resultHref = $attempt ? route('trainers.result', $attempt) : null;
+                    $cameraDone = $isCamera ? (int) ($cameraProgress['done'] ?? 0) : 0;
+                    $cameraTotal = $isCamera ? (int) ($cameraProgress['total'] ?? 0) : 0;
+                    $cameraPartial = $isCamera && $cameraDone > 0 && $cameraDone < $cameraTotal;
+                    $cameraComplete = $isCamera && $cameraTotal > 0 && $cameraDone >= $cameraTotal;
                 @endphp
                 <div class="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
                     @if($trainer->cover_path)
@@ -79,6 +83,8 @@
                         <span class="grid h-9 w-9 place-items-center rounded-2xl text-sm font-extrabold {{ $attempt ? 'bg-mint-soft text-mint-ink' : 'bg-paper-deep text-ink-soft' }}">
                             @if($attempt)
                                 <x-icon name="check" class="h-4 w-4" />
+                            @elseif($isCamera)
+                                <x-icon name="camera" class="h-4 w-4" />
                             @else
                                 {{ $index + 1 }}
                             @endif
@@ -90,12 +96,16 @@
                             <h3 class="text-base font-extrabold">{{ $trainer->title }}</h3>
                             @if($isCamera)
                                 <span class="chip border-lilac/20 bg-lilac-soft text-lilac-ink">камера</span>
+                                <span class="chip {{ $cameraComplete ? 'border-mint/20 bg-mint-soft text-mint-ink' : '' }}">{{ $cameraDone }} из {{ $cameraTotal }} эмоций</span>
                             @endif
                             @if($attempt)
                                 <span class="chip border-mint/20 bg-mint-soft text-mint-ink">{{ (int) $attempt->percent }}%</span>
                             @endif
                         </div>
                         <p class="mt-1 text-sm leading-relaxed text-muted">{{ $trainer->subtitle }}</p>
+                        @if($cameraPartial)
+                            <p class="mt-1 text-[11px] font-semibold text-lilac-ink">Осталось показать: {{ implode(', ', $cameraProgress['remaining']) }}</p>
+                        @endif
                         <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-muted">
                             <span class="inline-flex items-center gap-1"><x-icon name="clock" class="h-3 w-3" /> {{ $trainer->duration_min }} мин</span>
                             <span class="inline-flex items-center gap-1"><x-icon name="sparkles" class="h-3 w-3" /> {{ $trainer->points }} XP</span>
@@ -107,7 +117,7 @@
                             <a href="{{ $resultHref }}" class="btn-secondary min-h-11 flex-1 px-4 py-2.5 text-xs sm:flex-none">Результат</a>
                         @endif
                         <a href="{{ $href }}" class="btn-primary min-h-11 flex-1 px-4 py-2.5 text-xs sm:flex-none">
-                            {{ $attempt ? 'Повторить' : 'Начать' }}
+                            {{ $attempt ? 'Повторить' : ($cameraPartial ? 'Продолжить' : 'Начать') }}
                             <x-icon name="chevron-right" class="h-3.5 w-3.5" />
                         </a>
                     </div>

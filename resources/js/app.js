@@ -896,6 +896,9 @@ document.addEventListener('alpine:init', () => {
                 animation: 150,
                 ghostClass: 'opacity-40',
                 draggable: '[data-cat-item]',
+                forceFallback: true,
+                fallbackClass: 'categorize-drag',
+                fallbackTolerance: 4,
                 onEnd: () => this.sync(),
             };
 
@@ -1698,8 +1701,15 @@ document.addEventListener('alpine:init', () => {
         announcement: null,
         distractor: null,
         lastResult: null,
+        defaults: null,
 
         init() {
+            this.defaults = {
+                goLabel: this.goLabel,
+                nogoLabel: this.nogoLabel,
+                goHint: this.goHint,
+                nogoHint: this.nogoHint,
+            };
             this.handler = (event) => {
                 if (event.code === 'Space' || event.key === ' ') {
                     event.preventDefault();
@@ -1719,6 +1729,26 @@ document.addEventListener('alpine:init', () => {
             return this.trials.length > 0
                 ? Math.round((this.trials.filter((trial) => trial.correct).length / this.trials.length) * 100)
                 : 0;
+        },
+
+        get accuracyBefore() {
+            const trials = this.trials.filter((trial) => !trial.flipped);
+
+            return trials.length > 0
+                ? Math.round((trials.filter((trial) => trial.correct).length / trials.length) * 100)
+                : null;
+        },
+
+        get accuracyAfter() {
+            const trials = this.trials.filter((trial) => trial.flipped);
+
+            return trials.length > 0
+                ? Math.round((trials.filter((trial) => trial.correct).length / trials.length) * 100)
+                : null;
+        },
+
+        get ruleText() {
+            return `Нажимать: «${this.goLabel}» · Пропускать: «${this.nogoLabel}»`;
         },
 
         get meanRt() {
@@ -1752,10 +1782,16 @@ document.addEventListener('alpine:init', () => {
             this.distractor = null;
             this.lastResult = null;
 
+            if (this.defaults) {
+                this.goLabel = this.defaults.goLabel;
+                this.nogoLabel = this.defaults.nogoLabel;
+                this.goHint = this.defaults.goHint;
+                this.nogoHint = this.defaults.nogoHint;
+            }
+
             for (let i = 0; i < this.total; i++) {
                 if (this.flipAfter > 0 && !this.flipped && i === this.flipAfter) {
-                    this.flipRules();
-                    await this.sleep(700);
+                    await this.flipRules();
                 }
 
                 this.index = i + 1;
@@ -1807,6 +1843,7 @@ document.addEventListener('alpine:init', () => {
                         reacted: this.reacted,
                         rt: this.reacted ? this.rt : null,
                         correct,
+                        flipped: this.flipped,
                         window_ms: windowForTrial,
                     });
                     this.showSignal = false;
@@ -1817,15 +1854,18 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-        flipRules() {
+        async flipRules() {
             [this.goLabel, this.nogoLabel] = [this.nogoLabel, this.goLabel];
             [this.goHint, this.nogoHint] = [this.nogoHint, this.goHint];
             this.flipped = true;
-            this.announcement = `Правила поменялись: «${this.goLabel}» — нажимать, «${this.nogoLabel}» — не нажимать`;
+            this.showSignal = false;
+            this.distractor = null;
+            this.announcement = `Правила поменялись. Теперь нажимайте на «${this.goLabel}», а «${this.nogoLabel}» пропускайте.`;
 
-            setTimeout(() => {
-                this.announcement = null;
-            }, 1800);
+            await this.sleep(2200);
+
+            this.announcement = null;
+            this.lastResult = null;
         },
 
         react() {

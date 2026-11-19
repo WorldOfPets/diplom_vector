@@ -152,17 +152,20 @@ class ContentProgressTest extends TestCase
 
         $summary = $service->sync($user);
 
-        $this->assertSame(34, $summary['done']);
-        $this->assertSame(34, $summary['total']);
+        $this->assertSame(35, $summary['done']);
+        $this->assertSame(35, $summary['total']);
         $this->assertSame(100.0, (float) $summary['percent']);
         $this->assertTrue($summary['certificate_ready']);
 
         $diary = collect($summary['categories'])->firstWhere('key', 'diary');
         $mimic = collect($summary['categories'])->firstWhere('key', 'mimic');
+        $trainers = collect($summary['categories'])->firstWhere('key', 'trainers');
 
         $this->assertSame(21, $diary['done']);
         $this->assertSame(21, $diary['total']);
         $this->assertSame(7, $mimic['done']);
+        $this->assertSame(2, $trainers['done']);
+        $this->assertSame(2, $trainers['total']);
 
         foreach (['initial', 'fifty', 'ninety'] as $stage) {
             $this->assertDatabaseHas('progress_snapshots', [

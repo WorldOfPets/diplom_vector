@@ -21,6 +21,20 @@ class ContentProgressService
 {
     public const CERTIFICATE_THRESHOLD = 95.0;
 
+    public const TRAINER_UNITS_MAX = 2;
+
+    /**
+     * Градация прогресса за тренажёр: 90% и выше — 2 единицы, от 50% — 1, ниже — 0.
+     */
+    public static function trainerUnits(float $percent): int
+    {
+        return match (true) {
+            $percent >= 90 => self::TRAINER_UNITS_MAX,
+            $percent >= 50 => 1,
+            default => 0,
+        };
+    }
+
     /**
      * @return array{
      *     categories: array<int, array{key: string, label: string, hint: string, done: int, total: int, percent: float, color: string, icon: string}>,
@@ -51,12 +65,16 @@ class ContentProgressService
         $testIds = Test::query()->where('is_active', true)->pluck('id');
         $shortIds = Short::query()->published()->pluck('id');
 
-        $trainersDone = TrainerAttempt::query()
+        $trainerUnits = TrainerAttempt::query()
             ->where('user_id', $user->id)
             ->where('status', 'completed')
             ->whereIn('trainer_id', $trainerIds)
-            ->distinct()
-            ->count('trainer_id');
+            ->groupBy('trainer_id')
+            ->selectRaw('trainer_id, max(percent) as best')
+            ->pluck('best', 'trainer_id')
+            ->sum(fn ($best): int => self::trainerUnits((float) $best));
+
+        $trainerUnitsTotal = $trainerIds->count() * self::TRAINER_UNITS_MAX;
 
         $theoryDone = $theoryArticles->sum(
             fn (TheoryArticle $article): int => $article->completedSteps($theoryProgress->get($article->id)),
@@ -97,7 +115,7 @@ class ContentProgressService
             $this->category('shorts', 'Просмотрено', 'мини-видео', $shortsDone, $shortIds->count(), 'var(--color-coral-ink)', 'play'),
             $this->category('theory', 'Изучено', 'шаги теории · 3 на материал', $theoryDone, $theoryTotal, 'var(--color-amber-ink)', 'book'),
             $this->category('diary', 'Дневник', 'утро/день/вечер · 3 в день', $diaryDone, 21, 'var(--color-mint-ink)', 'calendar'),
-            $this->category('trainers', 'Пройдено', 'тренажёры (кроме «Мимики»)', $trainersDone, $trainerIds->count(), 'var(--color-brand-deep)', 'sparkles'),
+            $this->category('trainers', 'Тренажёры', '1 единица за 50%, 2 — за 90%', $trainerUnits, $trainerUnitsTotal, 'var(--color-brand-deep)', 'sparkles'),
             $this->category('mimic', 'Мимика', 'эмоций', min(7, $mimicDone), 7, 'var(--color-lilac-ink)', 'camera'),
             $this->category('tests', 'Диагностировано', 'тесты и кейсы', $testsDone, $testIds->count(), 'var(--color-lilac-ink)', 'chart'),
         ];

@@ -45,15 +45,21 @@ class GoNoGoEngine extends BaseEngine
         $falseAlarms = 0;
         $misses = 0;
         $reactionTimes = [];
+        $phases = [
+            'pre' => ['correct' => 0, 'total' => 0],
+            'post' => ['correct' => 0, 'total' => 0],
+        ];
 
         foreach ($trials as $trial) {
             $type = $trial['type'] ?? null;
             $reacted = (bool) ($trial['reacted'] ?? false);
             $rt = isset($trial['rt']) ? (int) $trial['rt'] : null;
+            $isCorrect = false;
 
             if ($type === 'go') {
                 if ($reacted) {
                     $correct++;
+                    $isCorrect = true;
                     if ($rt !== null) {
                         $reactionTimes[] = $rt;
                     }
@@ -67,28 +73,55 @@ class GoNoGoEngine extends BaseEngine
                     $falseAlarms++;
                 } else {
                     $correct++;
+                    $isCorrect = true;
                 }
+            }
+
+            $phase = ! empty($trial['flipped']) ? 'post' : 'pre';
+            $phases[$phase]['total']++;
+
+            if ($isCorrect) {
+                $phases[$phase]['correct']++;
             }
         }
 
         $percent = round($correct / $total * 100, 1);
         $meanRt = $reactionTimes !== [] ? (int) round(array_sum($reactionTimes) / count($reactionTimes)) : null;
 
+        $beforeFlip = $phases['pre']['total'] > 0
+            ? round($phases['pre']['correct'] / $phases['pre']['total'] * 100, 1)
+            : null;
+        $afterFlip = $phases['post']['total'] > 0
+            ? round($phases['post']['correct'] / $phases['post']['total'] * 100, 1)
+            : null;
+
+        $feedback = [
+            $percent >= 80
+                ? 'Хороший контроль импульса: вы вовремя тормозите реакцию на «триггер».'
+                : 'Импульс пока срабатывает быстрее торможения. Это навык, который тренируется повтором.',
+            'Игра измеряет не «силу воли», а скорость торможения в конкретной серии. Результат может меняться от усталости.',
+        ];
+
+        if ($beforeFlip !== null && $afterFlip !== null) {
+            if ($afterFlip + 15 < $beforeFlip) {
+                $feedback[] = 'После смены правил точность просела: срабатывала старая привычка. Это и есть точка роста — здесь тренируется переключение, а не только торможение.';
+            } elseif ($afterFlip >= $beforeFlip - 5) {
+                $feedback[] = 'Правило после смены вы удержали: переключение сработало.';
+            }
+        }
+
         return new EngineResult(
             percent: $percent,
             metrics: [
                 'accuracy' => $percent,
+                'accuracy_before_flip' => $beforeFlip,
+                'accuracy_after_flip' => $afterFlip,
                 'false_alarms' => $falseAlarms,
                 'misses' => $misses,
                 'mean_reaction_ms' => $meanRt,
                 'trials' => $total,
             ],
-            feedback: [
-                $percent >= 80
-                    ? 'Хороший контроль импульса: вы вовремя тормозите реакцию на «триггер».'
-                    : 'Импульс пока срабатывает быстрее торможения. Это навык, который тренируется повтором.',
-                'Игра измеряет не «силу воли», а скорость торможения в конкретной серии. Результат может меняться от усталости.',
-            ],
+            feedback: $feedback,
         );
     }
 }

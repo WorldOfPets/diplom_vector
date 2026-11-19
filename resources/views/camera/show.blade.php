@@ -108,7 +108,7 @@
                         <div class="mt-3 h-2 overflow-hidden rounded-full bg-paper-deep" role="progressbar" aria-label="Прохождение практикума" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="camera-completion-track">
                             <div id="camera-completion-bar" class="h-full rounded-full bg-brand transition-all" style="width: 0%"></div>
                         </div>
-                        <p class="mt-1.5 text-[10px] leading-relaxed text-muted">Одна эмоция = {{ (int) round(100 / max(count($targets), 1)) }}%. Прогресс сохраняется в профиле и идёт в общую шкалу.</p>
+                        <p class="mt-1.5 text-[10px] leading-relaxed text-muted">Одна эмоция = {{ (int) round(100 / max(count($targets), 1)) }}%. Каждая показанная эмоция сразу даёт единицу в общую шкалу, а практикум закрывается только на {{ count($targets) }} из {{ count($targets) }}.</p>
                         <button type="button" id="camera-finish" class="btn-primary mt-3 hidden min-h-11 w-full py-2.5 text-xs">
                             Завершить практикум
                         </button>

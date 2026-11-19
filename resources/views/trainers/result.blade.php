@@ -11,6 +11,9 @@
         $labels = array_column($chart['data'], 'label');
         $values = array_column($chart['data'], 'value');
         $colors = array_column($chart['data'], 'color');
+        $chartMax = (int) ($chart['max'] ?? 100);
+        $chartUnit = $chart['unit'] ?? 'percent';
+        $radarMax = $chart['type'] === 'radar' ? \App\Support\Chart::radarMax($values) : $chartMax;
         $chartConfig = [
             'type' => $chart['type'],
             'data' => [
@@ -36,15 +39,15 @@
                 'scales' => $chart['type'] === 'radar' ? [
                     'r' => [
                         'beginAtZero' => true,
-                        'max' => 100,
-                        'ticks' => ['display' => false, 'stepSize' => 25],
+                        'max' => $radarMax,
+                        'ticks' => ['display' => false, 'stepSize' => max(1, (int) round($radarMax / 4))],
                         'grid' => ['color' => 'rgba(139,147,163,0.22)'],
                         'angleLines' => ['color' => 'rgba(139,147,163,0.22)'],
                         'pointLabels' => ['color' => '#8B93A3', 'font' => ['size' => 11, 'weight' => '600']],
                     ],
                 ] : [
                     'x' => ['grid' => ['display' => false], 'ticks' => ['color' => '#8B93A3', 'font' => ['size' => 10]]],
-                    'y' => ['beginAtZero' => true, 'max' => 100, 'ticks' => ['display' => false], 'grid' => ['color' => 'rgba(139,147,163,0.22)']],
+                    'y' => ['beginAtZero' => true, 'max' => $chartMax, 'ticks' => ['display' => false], 'grid' => ['color' => 'rgba(139,147,163,0.22)']],
                 ],
             ],
         ];
@@ -70,6 +73,17 @@
                             <span class="chip {{ $passed ? 'border-mint/20 bg-mint-soft text-mint-ink' : 'border-amber/20 bg-amber-soft text-amber-ink' }}">
                                 {{ $passed ? 'упражнение засчитано' : 'есть что усилить' }}
                             </span>
+                            @if($trainer->engine !== 'camera')
+                                @php
+                                    $earnedUnits = \App\Services\ContentProgressService::trainerUnits((float) $attempt->percent);
+                                    $unitsWord = match ($earnedUnits) {
+                                        1 => 'единица',
+                                        2 => 'единицы',
+                                        default => 'единиц',
+                                    };
+                                @endphp
+                                <span class="chip {{ $earnedUnits === 2 ? 'border-mint/20 bg-mint-soft text-mint-ink' : '' }}" title="В общий прогресс идёт лучшая попытка по тренажёру">{{ $earnedUnits }} {{ $unitsWord }} прогресса</span>
+                            @endif
                         </div>
                         <h1 class="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">{{ $trainer->title }}</h1>
                         @if($trainer->engine === 'camera' && isset($attempt->response['completed']))
@@ -98,9 +112,17 @@
                             <p class="section-eyebrow">Профиль</p>
                             <h2 class="mt-1 text-lg font-extrabold">Что получилось</h2>
                         </div>
-                        <span class="text-[11px] font-bold text-muted">в процентах</span>
+                        <span class="text-[11px] font-bold text-muted">
+                            @if($chartUnit === 'points')
+                                в баллах 0–{{ $chartMax }}
+                            @elseif($chart['type'] === 'radar' && $radarMax < 100)
+                                в процентах · шкала 0–{{ $radarMax }}
+                            @else
+                                в процентах
+                            @endif
+                        </span>
                     </div>
-                    <div class="mt-4 h-72">
+                    <div class="mt-4 h-80 sm:h-96">
                         <canvas x-data="chartCanvas(@js($chartConfig))"></canvas>
                     </div>
                     <div class="mt-2 grid gap-1.5 sm:grid-cols-2">
@@ -110,7 +132,7 @@
                                     <span class="h-1.5 w-1.5 rounded-full" style="background: {{ \App\Support\Color::safe($row['color'] ?? null) }};"></span>
                                     {{ $row['label'] }}
                                 </span>
-                                <span class="font-extrabold" style="color: {{ \App\Support\Color::safe($row['color'] ?? null) }};">{{ (int) $row['value'] }}%</span>
+                                <span class="font-extrabold" style="color: {{ \App\Support\Color::safe($row['color'] ?? null) }};">{{ (int) $row['value'] }}{{ $chartUnit === 'points' ? ' / '.$chartMax : '%' }}</span>
                             </div>
                         @endforeach
                     </div>

@@ -6,6 +6,7 @@
     $isMotivation = $test->kind === 'motivation';
     $branchCount = $branches->count();
     $useBar = $isMotivation || $branchCount < 3;
+    $radarMax = \App\Support\Chart::radarMax($branches->pluck('value')->all());
     $chartColors = $isMotivation
         ? array_slice(['#D97706', '#F59E0B', '#FBBF24', '#B45309'], 0, max($branchCount, 1))
         : $branches->pluck('color')->all();
@@ -56,8 +57,8 @@
                 'scales' => [
                     'r' => [
                         'beginAtZero' => true,
-                        'max' => 100,
-                        'ticks' => ['display' => false, 'stepSize' => 25],
+                        'max' => $radarMax,
+                        'ticks' => ['display' => false, 'stepSize' => max(1, (int) round($radarMax / 4))],
                         'grid' => ['color' => 'rgba(139,147,163,0.22)'],
                         'angleLines' => ['color' => 'rgba(139,147,163,0.22)'],
                         'pointLabels' => ['color' => '#8B93A3', 'font' => ['size' => 11, 'weight' => '600']],
@@ -122,8 +123,11 @@
                 </div>
 
                 <div class="mt-4 grid gap-5 sm:grid-cols-[0.9fr_1.1fr] sm:items-center">
-                    <div class="h-64">
-                        <canvas x-data="chartCanvas(@js($chartConfig))"></canvas>
+                    <div>
+                        <div class="h-64">
+                            <canvas x-data="chartCanvas(@js($chartConfig))"></canvas>
+                        </div>
+                        <p class="mt-1 text-center text-[10px] font-semibold text-muted">{{ $useBar ? 'шкала 0–100%' : 'шкала 0–'.$radarMax.'%' }}</p>
                     </div>
                     <div class="space-y-3">
                         @foreach($branches as $branch)

@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CameraProgress;
 use App\Models\Module;
+use App\Models\Trainer;
 use App\Models\TrainerAttempt;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class ModuleController extends Controller
@@ -59,7 +62,41 @@ class ModuleController extends Controller
             'module' => $module,
             'trainers' => $trainers,
             'attempts' => $attempts,
+            'cameraProgress' => $this->cameraProgress($request, $trainers),
             'progress' => $trainers->isEmpty() ? 0 : (int) round($done / $trainers->count() * 100),
         ]);
+    }
+
+    /**
+     * @param  Collection<int, Trainer>  $trainers
+     * @return array{done: int, total: int, remaining: list<string>}
+     */
+    private function cameraProgress(Request $request, Collection $trainers): array
+    {
+        $cameraTrainer = $trainers->firstWhere('engine', 'camera');
+
+        if ($cameraTrainer === null) {
+            return ['done' => 0, 'total' => 0, 'remaining' => []];
+        }
+
+        $targets = collect($cameraTrainer->config['targets'] ?? []);
+        $targetIds = $targets->pluck('id')->all();
+
+        $completed = CameraProgress::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('emotion', $targetIds)
+            ->distinct()
+            ->pluck('emotion')
+            ->all();
+
+        return [
+            'done' => count($completed),
+            'total' => count($targetIds),
+            'remaining' => $targets
+                ->reject(fn (array $target): bool => in_array($target['id'], $completed, true))
+                ->pluck('label')
+                ->values()
+                ->all(),
+        ];
     }
 }

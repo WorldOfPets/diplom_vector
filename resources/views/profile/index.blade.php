@@ -4,6 +4,7 @@
 
 @php
     $branchValues = $branches->pluck('value')->map(fn ($value) => $value === null ? 0 : (float) $value)->all();
+    $radarMax = \App\Support\Chart::radarMax($branchValues);
     $radarConfig = [
         'type' => 'radar',
         'data' => [
@@ -25,8 +26,8 @@
             'scales' => [
                 'r' => [
                     'beginAtZero' => true,
-                    'max' => 100,
-                    'ticks' => ['display' => false, 'stepSize' => 25],
+                    'max' => $radarMax,
+                    'ticks' => ['display' => false, 'stepSize' => max(1, (int) round($radarMax / 4))],
                     'grid' => ['color' => 'rgba(139,147,163,0.22)'],
                     'angleLines' => ['color' => 'rgba(139,147,163,0.22)'],
                     'pointLabels' => ['color' => '#8B93A3', 'font' => ['size' => 10, 'weight' => '600']],
@@ -247,8 +248,11 @@
                     </x-empty-state>
                 @else
                     <div class="mt-4 grid gap-5 sm:grid-cols-[0.9fr_1.1fr] sm:items-center">
-                        <div class="h-64">
-                            <canvas x-data="chartCanvas(@js($radarConfig))"></canvas>
+                        <div>
+                            <div class="h-64">
+                                <canvas x-data="chartCanvas(@js($radarConfig))"></canvas>
+                            </div>
+                            <p class="mt-1 text-center text-[10px] font-semibold text-muted">шкала 0–{{ $radarMax }}%</p>
                         </div>
                         <div class="space-y-3">
                             @foreach($branches as $branch)

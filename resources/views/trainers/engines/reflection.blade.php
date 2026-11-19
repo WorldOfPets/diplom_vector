@@ -5,6 +5,15 @@
     $actions = $config['actions'] ?? [];
     $texts = $config['texts'] ?? [];
 
+    $scenario = $config['scenario'] ?? '';
+    $steps = is_array($scenario)
+        ? $scenario
+        : preg_split('/\R/u', (string) $scenario);
+    $steps = array_values(array_filter(array_map(
+        fn ($step): string => is_string($step) ? trim($step) : '',
+        $steps ?: [],
+    )));
+
     $beforeDefaults = collect($before)->mapWithKeys(fn ($slider): array => [$slider['key'] => $slider['min'] ?? 0])->all();
     $afterDefaults = collect($after)->mapWithKeys(fn ($slider): array => [$slider['key'] => $slider['min'] ?? 0])->all();
 @endphp
@@ -41,6 +50,21 @@
                 <p class="mt-1 text-xs leading-relaxed text-muted">{{ $config['prompt'] ?? 'Выполняйте шаги в своём темпе. Здесь не нужно спешить.' }}</p>
             </div>
         </div>
+
+        @if($steps !== [])
+            <div class="mt-4 rounded-2xl border border-line/70 bg-paper/60 p-4">
+                <p class="text-[11px] font-extrabold uppercase tracking-[0.14em] text-muted">Сценарий</p>
+                <ol class="mt-3 space-y-2.5">
+                    @foreach($steps as $step)
+                        <li class="flex gap-2.5 text-xs leading-relaxed text-ink-soft">
+                            <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-surface text-[10px] font-extrabold text-muted">{{ $loop->iteration }}</span>
+                            <span>{{ $step }}</span>
+                        </li>
+                    @endforeach
+                </ol>
+                <p class="mt-3 text-[11px] leading-relaxed text-muted">Если образ не приходит — это нормально: возьмите паузу и вернитесь позже. Здесь нет «правильной» картинки.</p>
+            </div>
+        @endif
 
         @if($cards !== [])
             <div class="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
@@ -114,7 +138,7 @@
     @if($texts !== [])
         <div class="card p-5 sm:p-6">
             <p class="text-sm font-bold">Короткая заметка</p>
-            <p class="mt-1 text-xs text-muted">Это увидите только вы и куратор. Без оценки.</p>
+            <p class="mt-1 text-xs text-muted">Это увидите только вы и куратор. Без оценки. Случайный набор букв не засчитается.</p>
             <div class="mt-4 space-y-4">
                 @foreach($texts as $text)
                     <div>

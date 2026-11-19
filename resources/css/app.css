@@ -299,3 +299,13 @@
         padding-bottom: env(safe-area-inset-bottom);
     }
 }
+
+/* Unlayered on purpose: the drag clone keeps the card's utility classes,
+   and layered rules would lose to them. */
+.categorize-drag {
+    border-color: var(--color-brand);
+    background-color: var(--color-surface);
+    box-shadow: 0 18px 40px -14px rgba(16, 24, 40, 0.38);
+    cursor: grabbing;
+    transition: none;
+}

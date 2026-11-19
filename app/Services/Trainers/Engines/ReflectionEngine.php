@@ -22,6 +22,7 @@ class ReflectionEngine extends BaseEngine
         return [
             'title' => ['type' => 'text', 'label' => 'Заголовок'],
             'prompt' => ['type' => 'textarea', 'label' => 'Инструкция'],
+            'scenario' => ['type' => 'textarea', 'label' => 'Сценарий (шаги с новой строки)'],
             'cards' => ['type' => 'repeater', 'label' => 'Карточки', 'fields' => [
                 'id' => ['type' => 'text', 'label' => 'ID'],
                 'title' => ['type' => 'text', 'label' => 'Название'],

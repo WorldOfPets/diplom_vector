@@ -445,6 +445,11 @@ selectTarget(nextTarget());
 
 renderCompletion();
 
+if (completed.size > 0 && completed.size < totalTargets) {
+    const left = totalTargets - completed.size;
+    setHint(`Продолжаем: ${completed.size} из ${totalTargets} эмоций. Осталось ${left}. Следующая цель — «${labels[nextTarget()] ?? nextTarget()}».`);
+}
+
 if (!navigator.mediaDevices?.getUserMedia) {
     setStatus('Браузер не поддерживает камеру. Откройте страницу в современном браузере.', 'error');
     els.start?.setAttribute('disabled', 'disabled');

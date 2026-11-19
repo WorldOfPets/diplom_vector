@@ -6,10 +6,12 @@ use App\Models\Trainer;
 use App\Models\TrainerAttempt;
 use App\Services\ContentProgressService;
 use App\Services\Trainers\TrainerEngineRegistry;
+use App\Support\RussianTextGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class TrainerController extends Controller
@@ -76,6 +78,8 @@ class TrainerController extends Controller
 
         $response = $data['response'];
         abort_if(strlen((string) json_encode($response)) > 256000, 422, 'Ответ слишком большой. Попробуйте сократить рисунок или количество действий.');
+
+        $this->guardFreeText($response);
 
         $attempt = null;
         if (isset($data['attempt_id'])) {
@@ -202,13 +206,13 @@ class TrainerController extends Controller
     {
         $config = $trainer->config ?? [];
         $prefixes = [
-            'motive_' => ['categories', 'radar'],
-            'strategy_' => ['categories', 'bar'],
-            'area_' => ['areas', 'radar'],
-            'bucket_' => ['buckets', 'bar'],
+            'motive_' => ['categories', 'radar', 'percent'],
+            'strategy_' => ['categories', 'bar', 'percent'],
+            'area_' => ['areas', 'radar', 'points'],
+            'bucket_' => ['buckets', 'bar', 'percent'],
         ];
 
-        foreach ($prefixes as $prefix => [$source, $type]) {
+        foreach ($prefixes as $prefix => [$source, $type, $unit]) {
             $values = [];
             foreach ($metrics as $key => $value) {
                 if (str_starts_with((string) $key, $prefix)) {
@@ -242,10 +246,59 @@ class TrainerController extends Controller
 
             return [
                 'type' => $type,
+                'unit' => $unit,
+                'max' => $unit === 'points' ? max(1, (int) ($config['max'] ?? 10)) : 100,
                 'data' => $ordered,
             ];
         }
 
         return null;
+    }
+
+    /**
+     * Свободный текст проверяем по словарю: набор букв не должен засчитываться.
+     *
+     * @param  array<string, mixed>  $response
+     */
+    private function guardFreeText(array $response): void
+    {
+        $values = [];
+
+        foreach (['texts', 'fields', 'milestones'] as $key) {
+            $group = $response[$key] ?? null;
+
+            if (! is_array($group)) {
+                continue;
+            }
+
+            foreach ($group as $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    $values[] = $value;
+                }
+            }
+        }
+
+        if ($values === []) {
+            return;
+        }
+
+        $guard = app(RussianTextGuard::class);
+        $suspicious = [];
+
+        foreach ($values as $value) {
+            foreach ($guard->suspiciousWords($value) as $word) {
+                $suspicious[$word] = true;
+            }
+        }
+
+        if ($suspicious === []) {
+            return;
+        }
+
+        $words = array_slice(array_keys($suspicious), 0, 5);
+
+        throw ValidationException::withMessages([
+            'response' => 'Похоже, часть текста — случайный набор букв: «'.implode('», «', $words).'». Проверьте, пожалуйста, написание и попробуйте снова.',
+        ]);
     }
 }

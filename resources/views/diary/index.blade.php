@@ -114,12 +114,12 @@
                         </select>
                     </div>
 
-                    <div>
+                    <div x-data="{ intensity: {{ (int) old('intensity', 3) }} }">
                         <div class="flex items-center justify-between text-xs font-bold">
                             <label for="intensity">Интенсивность</label>
-                            <span class="text-brand" id="intensity-value">3</span>
+                            <span class="text-brand" id="intensity-value" x-text="intensity">3</span>
                         </div>
-                        <input type="range" min="1" max="5" name="intensity" id="intensity" value="{{ old('intensity', 3) }}" class="mt-2 w-full accent-[#2D5BFF]" oninput="document.getElementById('intensity-value').textContent = this.value">
+                        <input type="range" min="1" max="5" name="intensity" id="intensity" x-model.number="intensity" class="mt-2 w-full accent-[#2D5BFF]">
                         <div class="mt-1 flex justify-between text-[10px] font-semibold text-muted"><span>едва заметно</span><span>очень сильно</span></div>
                     </div>
 

@@ -54,7 +54,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('progress.index') }}" class="btn-secondary px-4 py-2.5 text-xs">К прогрессу</a>
-                <button type="button" onclick="window.print()" class="btn-primary px-4 py-2.5 text-xs">Печать / PDF</button>
+                <button type="button" x-data @click="window.print()" class="btn-primary px-4 py-2.5 text-xs">Печать / PDF</button>
             </div>
         </div>
 

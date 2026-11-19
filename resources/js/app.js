@@ -825,6 +825,643 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('pairMatcher', (options) => ({
+        left: options.left ?? [],
+        right: options.right ?? [],
+        pairs: Object.fromEntries(
+            Object.entries(options.pairs ?? {}).filter(([, value]) => typeof value === 'string' && value !== ''),
+        ),
+        active: null,
+
+        init() {
+            this.$dispatch('response-patch', { pairs: { ...this.pairs } });
+        },
+
+        get assignedCount() {
+            return Object.keys(this.pairs).length;
+        },
+
+        get total() {
+            return this.left.length;
+        },
+
+        isUsed(rightId) {
+            return Object.values(this.pairs).includes(rightId);
+        },
+
+        chooseLeft(leftId) {
+            this.active = this.active === leftId ? null : leftId;
+        },
+
+        assign(rightId) {
+            if (!this.active || this.isUsed(rightId)) {
+                return;
+            }
+
+            this.pairs = { ...this.pairs, [this.active]: rightId };
+            this.active = null;
+            this.$dispatch('response-patch', { pairs: { ...this.pairs } });
+        },
+
+        clear(leftId) {
+            const next = { ...this.pairs };
+            delete next[leftId];
+            this.pairs = next;
+            this.$dispatch('response-patch', { pairs: { ...next } });
+        },
+
+        labelFor(rightId) {
+            return this.right.find((item) => item.id === rightId)?.label ?? '';
+        },
+    }));
+
+    Alpine.data('categorizeBoard', (options) => ({
+        buckets: options.buckets ?? [],
+        activeItem: null,
+        counts: options.counts ?? {},
+        poolCount: options.poolCount ?? 0,
+
+        init() {
+            this.sync();
+            this.$nextTick(() => this.mount());
+        },
+
+        mount() {
+            if (!window.Sortable) {
+                return;
+            }
+
+            const shared = {
+                group: 'categorize',
+                animation: 150,
+                ghostClass: 'opacity-40',
+                draggable: '[data-cat-item]',
+                onEnd: () => this.sync(),
+            };
+
+            if (this.$refs.pool) {
+                Sortable.create(this.$refs.pool, { ...shared, sort: false });
+            }
+
+            this.buckets.forEach((bucket) => {
+                const element = this.bucketElement(bucket.id);
+                if (element) {
+                    Sortable.create(element, shared);
+                }
+            });
+        },
+
+        bucketElement(id) {
+            return Array.from(this.$root.querySelectorAll('[data-bucket]'))
+                .find((element) => element.dataset.bucket === id) ?? null;
+        },
+
+        itemNode(itemId) {
+            return this.nodes().find((node) => node.dataset.catItem === itemId) ?? null;
+        },
+
+        nodes() {
+            return Array.from(this.$root.querySelectorAll('[data-cat-item]'));
+        },
+
+        sync() {
+            const assigned = {};
+
+            this.nodes().forEach((node) => {
+                const bucket = node.closest('[data-bucket]');
+                if (bucket?.dataset.bucket) {
+                    assigned[node.dataset.catItem] = bucket.dataset.bucket;
+                }
+            });
+
+            this.counts = this.buckets.reduce((accumulator, bucket) => {
+                accumulator[bucket.id] = Object.values(assigned).filter((value) => value === bucket.id).length;
+
+                return accumulator;
+            }, {});
+
+            this.poolCount = this.nodes().filter((node) => !node.closest('[data-bucket]')?.dataset.bucket).length;
+
+            this.$dispatch('response-patch', { buckets: assigned });
+        },
+
+        select(itemId) {
+            this.activeItem = this.activeItem === itemId ? null : itemId;
+        },
+
+        place(bucketId) {
+            if (!this.activeItem) {
+                return;
+            }
+
+            const node = this.itemNode(this.activeItem);
+            const target = this.bucketElement(bucketId);
+
+            if (!node || !target) {
+                return;
+            }
+
+            target.appendChild(node);
+            this.activeItem = null;
+            this.sync();
+        },
+
+        returnToPool(itemId) {
+            if (!itemId || !this.$refs.pool) {
+                return;
+            }
+
+            const node = this.itemNode(itemId);
+
+            if (!node) {
+                return;
+            }
+
+            this.$refs.pool.appendChild(node);
+            this.activeItem = null;
+            this.sync();
+        },
+    }));
+
+    Alpine.data('coinJar', (options) => ({
+        budget: options.budget ?? 100,
+        coinValue: options.coinValue ?? 5,
+        items: options.items ?? [],
+        amounts: options.amounts ?? {},
+        spentAmount: 0,
+        remainingAmount: options.budget ?? 100,
+        sortables: [],
+
+        init() {
+            this.refreshTotals();
+            this.$nextTick(() => this.mount());
+            this.$dispatch('response-patch', { amounts: { ...this.amounts } });
+        },
+
+        mount() {
+            if (!window.Sortable) {
+                return;
+            }
+
+            const shared = {
+                group: 'coins',
+                animation: 150,
+                draggable: '[data-coin]',
+                onEnd: () => this.sync(),
+            };
+
+            if (this.$refs.purse) {
+                this.sortables.push(Sortable.create(this.$refs.purse, { ...shared, sort: false }));
+            }
+
+            this.targets().forEach((target) => {
+                this.sortables.push(Sortable.create(target, shared));
+            });
+        },
+
+        destroy() {
+            this.sortables.forEach((sortable) => sortable.destroy());
+        },
+
+        targets() {
+            return Array.from(this.$root.querySelectorAll('[data-coin-target]'));
+        },
+
+        target(id) {
+            return this.targets().find((target) => target.dataset.coinTarget === id) ?? null;
+        },
+
+        count(id) {
+            const target = this.target(id);
+
+            return target ? target.querySelectorAll('[data-coin]').length : 0;
+        },
+
+        refreshTotals() {
+            const spent = this.items.reduce(
+                (sum, item) => sum + Number(this.amounts[item.id] ?? 0),
+                0,
+            );
+
+            this.spentAmount = spent;
+            this.remainingAmount = Math.max(0, this.budget - spent);
+        },
+
+        sync() {
+            const amounts = {};
+
+            this.items.forEach((item) => {
+                amounts[item.id] = this.count(item.id) * this.coinValue;
+            });
+
+            this.amounts = amounts;
+            this.refreshTotals();
+            this.$dispatch('response-patch', { amounts: { ...amounts } });
+        },
+
+        add(id) {
+            if (this.remainingAmount < this.coinValue || !this.$refs.purse) {
+                return;
+            }
+
+            const coin = this.$refs.purse.querySelector('[data-coin]');
+            const target = this.target(id);
+
+            if (!coin || !target) {
+                return;
+            }
+
+            target.appendChild(coin);
+            this.sync();
+        },
+
+        remove(id) {
+            const target = this.target(id);
+
+            if (!target || !this.$refs.purse) {
+                return;
+            }
+
+            const coin = target.querySelector('[data-coin]');
+
+            if (!coin) {
+                return;
+            }
+
+            this.$refs.purse.appendChild(coin);
+            this.sync();
+        },
+
+        reset() {
+            if (!this.$refs.purse) {
+                return;
+            }
+
+            this.targets().forEach((target) => {
+                target.querySelectorAll('[data-coin]').forEach((coin) => {
+                    this.$refs.purse.appendChild(coin);
+                });
+            });
+
+            this.sync();
+        },
+    }));
+
+    Alpine.data('constructorCoach', (options) => ({
+        values: options.values ?? {},
+        fields: options.fields ?? [],
+        blacklist: options.blacklist ?? [],
+        chips: options.chips ?? [],
+        draggedChip: null,
+
+        init() {
+            this.$dispatch('response-patch', { fields: { ...this.values } });
+        },
+
+        update(key, value) {
+            if (!key) {
+                return;
+            }
+
+            this.values = { ...this.values, [key]: value };
+            this.$dispatch('response-patch', { fields: { ...this.values } });
+        },
+
+        dragChip(id) {
+            this.draggedChip = id;
+        },
+
+        dropChip(key) {
+            const chip = this.chips.find((item) => item.id === this.draggedChip);
+
+            if (chip) {
+                this.update(key, chip.label);
+            }
+
+            this.draggedChip = null;
+        },
+
+        get requiredFields() {
+            return this.fields.filter((field) => field.required);
+        },
+
+        get completeCount() {
+            return this.requiredFields.filter((field) => String(this.values[field.key] ?? '').trim().length >= field.min).length;
+        },
+
+        get progress() {
+            return this.requiredFields.length === 0 ? 100 : Math.round((this.completeCount / this.requiredFields.length) * 100);
+        },
+
+        length(key) {
+            return (this.values[key] ?? '').length;
+        },
+
+        stopWords(key) {
+            const value = (this.values[key] ?? '').toLowerCase();
+
+            return this.blacklist.filter((word) => word && value.includes(word.toLowerCase()));
+        },
+    }));
+
+    Alpine.data('drawingBoard', (options) => ({
+        palette: options.palette ?? [],
+        color: options.palette?.[0] ?? '#2D5BFF',
+        brush: 6,
+        brushes: [3, 6, 12],
+        strokes: Array.isArray(options.initial) ? options.initial : [],
+        readonly: options.readonly === true,
+        maxPoints: options.maxPoints ?? 4000,
+        pointCount: 0,
+        canvas: null,
+        ctx: null,
+        observer: null,
+        draft: null,
+        pointerId: null,
+
+        init() {
+            this.canvas = this.$refs.canvas;
+            this.ctx = this.canvas.getContext('2d');
+            this.pointCount = this.strokes.reduce((sum, stroke) => sum + (Array.isArray(stroke.points) ? stroke.points.length : 0), 0);
+            this.resize();
+            this.redraw();
+
+            this.observer = new ResizeObserver(() => {
+                this.resize();
+                this.redraw();
+            });
+            this.observer.observe(this.canvas.parentElement);
+
+            if (!this.readonly) {
+                this.$dispatch('response-patch', { strokes: this.strokes });
+            }
+        },
+
+        destroy() {
+            this.observer?.disconnect();
+        },
+
+        get count() {
+            return this.strokes.length;
+        },
+
+        resize() {
+            const rect = this.canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
+            this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        },
+
+        point(event) {
+            const rect = this.canvas.getBoundingClientRect();
+
+            return {
+                x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
+                y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
+            };
+        },
+
+        start(event) {
+            if (this.readonly || this.pointCount >= this.maxPoints || (event.button !== undefined && event.button !== 0)) {
+                return;
+            }
+
+            event.preventDefault();
+
+            try {
+                this.canvas.setPointerCapture(event.pointerId);
+            } catch (error) {
+                // Pointer capture is best-effort; drawing still works without it.
+            }
+
+            this.pointerId = event.pointerId;
+            const point = this.point(event);
+            this.draft = { color: this.color, width: this.brush, points: [point] };
+            this.segment(point, point, this.draft);
+        },
+
+        move(event) {
+            if (!this.draft || event.pointerId !== this.pointerId || this.pointCount + this.draft.points.length >= this.maxPoints) {
+                return;
+            }
+
+            const point = this.point(event);
+            const last = this.draft.points[this.draft.points.length - 1];
+
+            if (Math.hypot(point.x - last.x, point.y - last.y) < 0.0015) {
+                return;
+            }
+
+            this.draft.points.push(point);
+            this.segment(last, point, this.draft);
+        },
+
+        end() {
+            if (!this.draft) {
+                return;
+            }
+
+            if (this.draft.points.length > 0) {
+                this.strokes = [...this.strokes, {
+                    color: this.draft.color,
+                    width: this.draft.width,
+                    points: this.draft.points.map((point) => ({
+                        x: Number(point.x.toFixed(4)),
+                        y: Number(point.y.toFixed(4)),
+                    })),
+                }];
+                this.pointCount += this.draft.points.length;
+                this.$dispatch('response-patch', { strokes: this.strokes });
+            }
+
+            this.draft = null;
+            this.pointerId = null;
+        },
+
+        segment(from, to, stroke) {
+            const rect = this.canvas.getBoundingClientRect();
+            this.ctx.strokeStyle = stroke.color;
+            this.ctx.fillStyle = stroke.color;
+            this.ctx.lineWidth = stroke.width;
+            this.ctx.lineCap = 'round';
+            this.ctx.lineJoin = 'round';
+            this.ctx.beginPath();
+            this.ctx.moveTo(from.x * rect.width, from.y * rect.height);
+            this.ctx.lineTo(to.x * rect.width, to.y * rect.height);
+            this.ctx.stroke();
+        },
+
+        redraw() {
+            const rect = this.canvas.getBoundingClientRect();
+            this.ctx.clearRect(0, 0, rect.width, rect.height);
+
+            this.strokes.forEach((stroke) => {
+                const points = Array.isArray(stroke.points) ? stroke.points : [];
+
+                if (points.length === 0) {
+                    return;
+                }
+
+                const width = Number(stroke.width) || 6;
+                this.ctx.strokeStyle = stroke.color;
+                this.ctx.fillStyle = stroke.color;
+                this.ctx.lineWidth = width;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+
+                if (points.length === 1) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(points[0].x * rect.width, points[0].y * rect.height, width / 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    return;
+                }
+
+                this.ctx.beginPath();
+                points.forEach((point, index) => {
+                    const x = Number(point.x) * rect.width;
+                    const y = Number(point.y) * rect.height;
+
+                    if (index === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                });
+                this.ctx.stroke();
+            });
+        },
+
+        undo() {
+            if (this.readonly || this.strokes.length === 0) {
+                return;
+            }
+
+            this.strokes = this.strokes.slice(0, -1);
+            this.pointCount = this.strokes.reduce((sum, stroke) => sum + (Array.isArray(stroke.points) ? stroke.points.length : 0), 0);
+            this.redraw();
+            this.$dispatch('response-patch', { strokes: this.strokes });
+        },
+
+        clear() {
+            if (this.readonly || this.strokes.length === 0) {
+                return;
+            }
+
+            this.strokes = [];
+            this.pointCount = 0;
+            this.redraw();
+            this.$dispatch('response-patch', { strokes: this.strokes });
+        },
+    }));
+
+    Alpine.data('puppetFigure', (options) => ({
+        state: {
+            head: 'level',
+            shoulders: 'neutral',
+            arms: 'open',
+            posture: 'straight',
+            ...(options.initial ?? {}),
+        },
+        target: options.target ?? 'confident',
+        targetLabels: options.targets ?? {},
+        touched: false,
+        targetPostures: {
+            confident: { head: 'up', shoulders: 'neutral', arms: 'open', posture: 'straight' },
+            anxious: { head: 'down', shoulders: 'raised', arms: 'crossed', posture: 'slouched' },
+            closed: { head: 'down', shoulders: 'low', arms: 'crossed', posture: 'slouched' },
+            aggressive: { head: 'up', shoulders: 'raised', arms: 'hips', posture: 'straight' },
+        },
+
+        part(key, value) {
+            this.state = { ...this.state, [key]: value };
+            this.touched = true;
+            this.push();
+        },
+
+        push() {
+            if (!this.touched) {
+                return;
+            }
+
+            this.$dispatch('response-patch', {
+                puppet: { ...this.state, state: this.reading },
+            });
+        },
+
+        get reading() {
+            const { head, shoulders, arms } = this.state;
+
+            if (arms === 'crossed' && shoulders === 'raised') {
+                return 'anxious';
+            }
+
+            if (arms === 'crossed') {
+                return 'closed';
+            }
+
+            if (arms === 'hips' && shoulders === 'raised') {
+                return 'aggressive';
+            }
+
+            if (head === 'up' && shoulders === 'neutral' && arms === 'open' && this.state.posture === 'straight') {
+                return 'confident';
+            }
+
+            return head === 'down' ? 'closed' : 'neutral';
+        },
+
+        get readingLabel() {
+            return this.targetLabels[this.reading] ?? 'нейтрально';
+        },
+
+        get targetLabel() {
+            return this.targetLabels[this.target] ?? this.target;
+        },
+
+        get match() {
+            const target = this.targetPostures[this.target] ?? null;
+
+            if (!target) {
+                return 0;
+            }
+
+            const parts = ['head', 'shoulders', 'arms', 'posture'];
+            const hits = parts.filter((part) => this.state[part] === target[part]).length;
+
+            return Math.round((hits / parts.length) * 100);
+        },
+
+        get headTransform() {
+            if (this.state.head === 'up') {
+                return 'translate(0 -4) rotate(-8 150 60)';
+            }
+
+            if (this.state.head === 'down') {
+                return 'translate(0 4) rotate(10 150 60)';
+            }
+
+            return '';
+        },
+
+        get shoulderTransform() {
+            if (this.state.shoulders === 'raised') {
+                return 'translate(0 -6)';
+            }
+
+            if (this.state.shoulders === 'low') {
+                return 'translate(0 6)';
+            }
+
+            return '';
+        },
+
+        get postureTransform() {
+            return this.state.posture === 'slouched' ? 'rotate(5 150 220)' : '';
+        },
+    }));
+
     Alpine.data('scenario', (config) => ({
         config,
         current: config.start,
@@ -832,9 +1469,58 @@ document.addEventListener('alpine:init', () => {
         feedback: null,
         finished: false,
         outcome: null,
+        messages: [],
+        tension: Number(config.tension?.start ?? 50),
+        tensionEnabled: Array.isArray(config.tension) || (typeof config.tension === 'object' && config.tension !== null),
+
+        init() {
+            this.pushNode(this.config.start);
+        },
 
         get node() {
             return this.config.nodes?.[this.current] ?? null;
+        },
+
+        get character() {
+            return this.config.character ?? 'Собеседник';
+        },
+
+        get avatar() {
+            const faces = {
+                calm: '🙂',
+                open: '😊',
+                tense: '😬',
+                angry: '😠',
+                closed: '😒',
+                sad: '😔',
+                neutral: '🙂',
+            };
+
+            return faces[this.node?.mood ?? 'neutral'] ?? '🙂';
+        },
+
+        get tensionColor() {
+            if (this.tension >= 67) {
+                return '#E11D48';
+            }
+
+            return this.tension >= 34 ? '#F59E0B' : '#2BB673';
+        },
+
+        get tensionLabel() {
+            if (this.tension >= 67) {
+                return 'на пределе';
+            }
+
+            return this.tension >= 34 ? 'напряжённо' : 'спокойно';
+        },
+
+        pushNode(key) {
+            const node = this.config.nodes?.[key];
+
+            if (node?.text) {
+                this.messages.push({ side: 'other', text: node.text });
+            }
         },
 
         choose(index) {
@@ -846,13 +1532,24 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.choices.push(index);
+            this.messages.push({ side: 'me', text: option.label });
             this.feedback = option.feedback ?? null;
-            this.$dispatch('response-patch', { choices: [...this.choices] });
+
+            if (this.tensionEnabled && typeof option.tension === 'number') {
+                this.tension = Math.max(0, Math.min(100, this.tension + option.tension));
+            }
+
+            this.$dispatch('response-patch', {
+                choices: [...this.choices],
+                tension: this.tension,
+            });
 
             const next = option.next ? this.config.nodes?.[option.next] : null;
 
             if (next) {
                 this.current = option.next;
+                this.pushNode(option.next);
+
                 if (!next.options || next.options.length === 0) {
                     this.finished = true;
                     this.outcome = next.outcome ?? null;
@@ -869,14 +1566,118 @@ document.addEventListener('alpine:init', () => {
             this.feedback = null;
             this.finished = false;
             this.outcome = null;
-            this.$dispatch('response-patch', { choices: [] });
+            this.messages = [];
+            this.tension = Number(this.config.tension?.start ?? 50);
+            this.pushNode(this.config.start);
+            this.$dispatch('response-patch', { choices: [], tension: this.tension });
+        },
+    }));
+
+    Alpine.data('stroopGame', (options) => ({
+        items: options.items ?? [],
+        choices: options.options ?? [],
+        timeLimit: options.timeLimit ?? 2500,
+        index: 0,
+        running: false,
+        finished: false,
+        rounds: [],
+        chosen: null,
+        remaining: 0,
+        startedAt: 0,
+        timer: null,
+        ticker: null,
+
+        get current() {
+            return this.items[this.index] ?? null;
+        },
+
+        get progress() {
+            return this.items.length > 0 ? Math.round((this.index / this.items.length) * 100) : 0;
+        },
+
+        get remainingPercent() {
+            return this.timeLimit > 0 ? Math.max(0, Math.min(100, (this.remaining / this.timeLimit) * 100)) : 0;
+        },
+
+        start() {
+            if (this.running) {
+                return;
+            }
+
+            this.running = true;
+            this.finished = false;
+            this.rounds = [];
+            this.index = 0;
+            this.chosen = null;
+            this.next();
+        },
+
+        next() {
+            if (!this.running) {
+                return;
+            }
+
+            if (this.index >= this.items.length) {
+                this.finish();
+
+                return;
+            }
+
+            this.chosen = null;
+            this.remaining = this.timeLimit;
+            this.startedAt = performance.now();
+            this.timer = setTimeout(() => this.answer(null), this.timeLimit);
+            this.ticker = setInterval(() => {
+                this.remaining = Math.max(0, this.timeLimit - (performance.now() - this.startedAt));
+            }, 50);
+        },
+
+        answer(choice) {
+            if (!this.running || this.chosen !== null) {
+                return;
+            }
+
+            this.chosen = choice ?? 'timeout';
+            clearTimeout(this.timer);
+            clearInterval(this.ticker);
+
+            const ms = Math.min(this.timeLimit, Math.max(0, Math.round(performance.now() - this.startedAt)));
+            this.rounds.push({ index: this.index, choice: choice ?? null, ms });
+            this.index++;
+
+            setTimeout(() => {
+                if (this.running) {
+                    this.next();
+                }
+            }, 180);
+        },
+
+        finish() {
+            this.running = false;
+            this.finished = true;
+            this.chosen = null;
+            this.remaining = 0;
+            clearTimeout(this.timer);
+            clearInterval(this.ticker);
+            this.$dispatch('response-patch', { rounds: this.rounds });
+        },
+
+        destroy() {
+            clearTimeout(this.timer);
+            clearInterval(this.ticker);
         },
     }));
 
     Alpine.data('goNoGo', (config) => ({
         total: config.trials ?? 30,
         goRatio: config.go_ratio ?? 0.7,
+        baseWindow: config.response_window_ms ?? 1100,
         windowMs: config.response_window_ms ?? 1100,
+        minWindow: config.min_window_ms ?? 650,
+        windowStep: config.window_step_ms ?? 60,
+        adaptive: config.adaptive === true,
+        flipAfter: Number(config.rule_flip_after ?? 0),
+        distractors: Array.isArray(config.distractors) ? config.distractors : [],
         goLabel: config.go_label ?? 'Спокойно',
         nogoLabel: config.nogo_label ?? 'Триггер',
         goHint: config.go_hint ?? 'Нажмите',
@@ -891,6 +1692,12 @@ document.addEventListener('alpine:init', () => {
         startedAt: 0,
         trials: [],
         handler: null,
+        combo: 0,
+        maxCombo: 0,
+        flipped: false,
+        announcement: null,
+        distractor: null,
+        lastResult: null,
 
         init() {
             this.handler = (event) => {
@@ -908,6 +1715,26 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        get accuracy() {
+            return this.trials.length > 0
+                ? Math.round((this.trials.filter((trial) => trial.correct).length / this.trials.length) * 100)
+                : 0;
+        },
+
+        get meanRt() {
+            const times = this.trials.map((trial) => trial.rt).filter((value) => typeof value === 'number');
+
+            return times.length > 0 ? Math.round(times.reduce((sum, value) => sum + value, 0) / times.length) : null;
+        },
+
+        get falseAlarms() {
+            return this.trials.filter((trial) => trial.type === 'nogo' && trial.reacted).length;
+        },
+
+        get misses() {
+            return this.trials.filter((trial) => trial.type === 'go' && !trial.reacted).length;
+        },
+
         async start() {
             if (this.running) {
                 return;
@@ -917,8 +1744,20 @@ document.addEventListener('alpine:init', () => {
             this.finished = false;
             this.trials = [];
             this.index = 0;
+            this.combo = 0;
+            this.maxCombo = 0;
+            this.flipped = false;
+            this.windowMs = this.baseWindow;
+            this.announcement = null;
+            this.distractor = null;
+            this.lastResult = null;
 
             for (let i = 0; i < this.total; i++) {
+                if (this.flipAfter > 0 && !this.flipped && i === this.flipAfter) {
+                    this.flipRules();
+                    await this.sleep(700);
+                }
+
                 this.index = i + 1;
                 await this.runTrial();
                 await this.sleep(260);
@@ -927,30 +1766,66 @@ document.addEventListener('alpine:init', () => {
             this.running = false;
             this.finished = true;
             this.showSignal = false;
+            this.distractor = null;
             this.$dispatch('response-patch', { trials: this.trials });
         },
 
         runTrial() {
             return new Promise((resolve) => {
+                const windowForTrial = this.windowMs;
                 const isGo = Math.random() < this.goRatio;
+
                 this.current = isGo ? 'go' : 'nogo';
                 this.reacted = false;
                 this.rt = null;
                 this.showSignal = true;
+                this.lastResult = null;
+                this.distractor = this.distractors.length > 0
+                    ? this.distractors[Math.floor(Math.random() * this.distractors.length)]
+                    : null;
                 this.startedAt = performance.now();
 
                 const timer = setTimeout(() => {
+                    const correct = this.current === 'go' ? this.reacted : !this.reacted;
+
+                    this.combo = correct ? this.combo + 1 : 0;
+                    this.maxCombo = Math.max(this.maxCombo, this.combo);
+
+                    if (this.adaptive) {
+                        if (correct && this.combo > 0 && this.combo % 3 === 0) {
+                            this.windowMs = Math.max(this.minWindow, this.windowMs - this.windowStep);
+                        }
+
+                        if (!correct) {
+                            this.windowMs = Math.min(this.baseWindow, this.windowMs + this.windowStep);
+                        }
+                    }
+
+                    this.lastResult = correct ? 'ok' : 'miss';
                     this.trials.push({
                         type: this.current,
                         reacted: this.reacted,
                         rt: this.reacted ? this.rt : null,
+                        correct,
+                        window_ms: windowForTrial,
                     });
                     this.showSignal = false;
                     resolve();
-                }, this.windowMs);
+                }, windowForTrial);
 
                 this._trialTimer = timer;
             });
+        },
+
+        flipRules() {
+            [this.goLabel, this.nogoLabel] = [this.nogoLabel, this.goLabel];
+            [this.goHint, this.nogoHint] = [this.nogoHint, this.goHint];
+            this.flipped = true;
+            this.announcement = `Правила поменялись: «${this.goLabel}» — нажимать, «${this.nogoLabel}» — не нажимать`;
+
+            setTimeout(() => {
+                this.announcement = null;
+            }, 1800);
         },
 
         react() {
@@ -1324,11 +2199,13 @@ document.addEventListener('alpine:init', () => {
         submitting: false,
         error: null,
         confirmSubmit: false,
+        navigatorOpen: false,
         startedAt: Date.now(),
         elapsed: 0,
         itemStartedAt: Date.now(),
         timer: null,
         autosaveTimer: null,
+        keyHandler: null,
 
         init() {
             const initial = options.initial ?? {};
@@ -1346,11 +2223,16 @@ document.addEventListener('alpine:init', () => {
                 this.elapsed = Math.floor((Date.now() - this.startedAt) / 1000);
             }, 1000);
             this.autosaveTimer = setInterval(() => this.saveDraft(), 12000);
+            this.keyHandler = (event) => this.handleKey(event);
+            window.addEventListener('keydown', this.keyHandler);
         },
 
         destroy() {
             clearInterval(this.timer);
             clearInterval(this.autosaveTimer);
+            if (this.keyHandler) {
+                window.removeEventListener('keydown', this.keyHandler);
+            }
         },
 
         defaultFor(item) {
@@ -1365,7 +2247,7 @@ document.addEventListener('alpine:init', () => {
                 case 'best_worst':
                     return { best: null, worst: null };
                 case 'ordering':
-                    return { order: (item.config?.items ?? []).map((entry) => entry.id) };
+                    return { order: this.shuffle((item.config?.items ?? []).map((entry) => entry.id)), orderTouched: false };
                 case 'matching':
                     return { pairs: {} };
                 case 'scale':
@@ -1375,12 +2257,27 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        shuffle(ids) {
+            const result = [...ids];
+
+            for (let index = result.length - 1; index > 0; index -= 1) {
+                const swap = Math.floor(Math.random() * (index + 1));
+                [result[index], result[swap]] = [result[swap], result[index]];
+            }
+
+            if (result.length > 1 && result.every((id, index) => id === ids[index])) {
+                result.push(result.shift());
+            }
+
+            return result;
+        },
+
         get current() {
             return this.items[this.index] ?? null;
         },
 
         get progress() {
-            return this.items.length === 0 ? 0 : Math.round(((this.index + 1) / this.items.length) * 100);
+            return this.items.length === 0 ? 0 : Math.round((this.answeredCount / this.items.length) * 100);
         },
 
         get answeredCount() {
@@ -1460,7 +2357,7 @@ document.addEventListener('alpine:init', () => {
                 case 'best_worst':
                     return Boolean(answer.best && answer.worst && answer.best !== answer.worst);
                 case 'ordering':
-                    return (answer.order ?? []).length === (item.config?.items ?? []).length;
+                    return answer.orderTouched === true && (answer.order ?? []).length === (item.config?.items ?? []).length;
                 case 'matching':
                     return Object.keys(answer.pairs ?? {}).length === (item.config?.left ?? []).length;
                 case 'scale':
@@ -1531,6 +2428,7 @@ document.addEventListener('alpine:init', () => {
 
             [order[from], order[to]] = [order[to], order[from]];
             answer.order = order;
+            answer.orderTouched = true;
         },
 
         next() {
@@ -1554,6 +2452,81 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        goTo(index) {
+            if (index < 0 || index >= this.items.length) {
+                return;
+            }
+
+            if (index === this.index) {
+                this.navigatorOpen = false;
+
+                return;
+            }
+
+            this.markTime();
+            this.index = index;
+            this.itemStartedAt = Date.now();
+            this.navigatorOpen = false;
+        },
+
+        handleKey(event) {
+            if (this.confirmSubmit || event.metaKey || event.ctrlKey || event.altKey) {
+                return;
+            }
+
+            const tag = event.target?.tagName;
+            const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || event.target?.isContentEditable;
+
+            if (isTyping) {
+                return;
+            }
+
+            if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                this.next();
+                return;
+            }
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                this.prev();
+                return;
+            }
+
+            if (event.key === 'Enter') {
+                if (tag !== 'BODY') {
+                    return;
+                }
+
+                event.preventDefault();
+                this.next();
+                return;
+            }
+
+            if (!['single', 'motivation'].includes(this.current?.type)) {
+                return;
+            }
+
+            const position = Number(event.key) - 1;
+
+            if (!Number.isInteger(position) || position < 0) {
+                return;
+            }
+
+            if (this.current.type === 'motivation' && position < 5) {
+                event.preventDefault();
+                this.select(position + 1);
+                return;
+            }
+
+            const choice = (this.current.config?.options ?? [])[position];
+
+            if (choice) {
+                event.preventDefault();
+                this.select(choice.id);
+            }
+        },
+
         markTime() {
             if (!this.current) {
                 return;
@@ -1561,8 +2534,11 @@ document.addEventListener('alpine:init', () => {
 
             const answer = this.answers[this.current.id];
             if (answer) {
-                answer.ms = Math.max(0, Date.now() - this.itemStartedAt);
+                const spent = Math.max(0, Date.now() - this.itemStartedAt);
+                answer.ms = Math.max(0, Number(answer.ms || 0) + spent);
             }
+
+            this.itemStartedAt = Date.now();
         },
 
         requestSubmit() {

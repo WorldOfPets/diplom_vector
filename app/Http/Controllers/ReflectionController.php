@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reflection;
+use App\Models\TrainerAttempt;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 

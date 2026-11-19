@@ -39,6 +39,15 @@ class TrainerController extends Controller
             ],
         );
 
+        if ((int) $attempt->trainer_version !== (int) $trainer->version) {
+            $attempt->forceFill([
+                'trainer_version' => $trainer->version,
+                'config_snapshot' => $trainer->config,
+                'response' => null,
+                'started_at' => now(),
+            ])->save();
+        }
+
         $completed = TrainerAttempt::query()
             ->where('user_id', $request->user()->id)
             ->where('trainer_id', $trainer->id)
@@ -65,17 +74,8 @@ class TrainerController extends Controller
             'attempt_id' => ['nullable', 'integer', 'exists:trainer_attempts,id'],
         ]);
 
-        $engine = $this->engines->get($trainer->engine);
-
-        try {
-            $result = $engine->score($trainer->config ?? [], $data['response']);
-        } catch (\Throwable $exception) {
-            report($exception);
-
-            return response()->json([
-                'message' => 'Контент тренажёра настроен некорректно. Сообщите администратору.',
-            ], 422);
-        }
+        $response = $data['response'];
+        abort_if(strlen((string) json_encode($response)) > 256000, 422, 'Ответ слишком большой. Попробуйте сократить рисунок или количество действий.');
 
         $attempt = null;
         if (isset($data['attempt_id'])) {
@@ -89,13 +89,39 @@ class TrainerController extends Controller
             $attempt->started_at = now();
         }
 
+        if ($attempt->exists) {
+            if ($attempt->status === 'completed') {
+                return response()->json([
+                    'message' => 'Эта попытка уже завершена. Обновите страницу и откройте результат.',
+                ], 409);
+            }
+
+            if ((int) $attempt->trainer_version !== (int) $trainer->version) {
+                return response()->json([
+                    'message' => 'Тренажёр обновился. Обновите страницу и начните заново — старые ответы не будут смешаны с новыми.',
+                ], 409);
+            }
+        }
+
+        $engine = $this->engines->get($trainer->engine);
+
+        try {
+            $result = $engine->score($trainer->config ?? [], $response);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Контент тренажёра настроен некорректно. Сообщите администратору.',
+            ], 422);
+        }
+
         $threshold = (float) ($trainer->settings['threshold'] ?? 0);
 
-        DB::transaction(function () use ($attempt, $trainer, $result, $data, $threshold): void {
+        DB::transaction(function () use ($attempt, $trainer, $result, $response, $threshold): void {
             $attempt->fill([
                 'trainer_version' => $trainer->version,
                 'status' => 'completed',
-                'response' => $data['response'],
+                'response' => $response,
                 'config_snapshot' => $trainer->config,
                 'metrics' => $result->metrics,
                 'score' => $result->percent,

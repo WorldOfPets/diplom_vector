@@ -62,4 +62,6 @@
         <input type="range" min="0" max="10" x-model.number="after" @input="updateAfter()" class="mt-2 w-full accent-[#2BB673]" aria-label="Напряжение после">
         <p class="mt-2 text-[10px] leading-relaxed text-muted">Если напряжение снизилось хотя бы на 1 балл — это уже результат.</p>
     </div>
+
+    <p class="mt-3 text-[10px] leading-relaxed text-muted">Не задерживайте дыхание через силу. При головокружении, панической атаке или заболеваниях дыхательной системы вернитесь к обычному ритму и проконсультируйтесь с врачом.</p>
 </div>

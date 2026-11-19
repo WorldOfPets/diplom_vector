@@ -16,6 +16,7 @@ use App\Services\Trainers\Engines\RankingEngine;
 use App\Services\Trainers\Engines\ReflectionEngine;
 use App\Services\Trainers\Engines\ScenarioEngine;
 use App\Services\Trainers\Engines\ShieldEngine;
+use App\Services\Trainers\Engines\StroopEngine;
 use App\Services\Trainers\Engines\TagWeightEngine;
 use App\Services\Trainers\Engines\TimelineEngine;
 use InvalidArgumentException;
@@ -42,6 +43,7 @@ class TrainerEngineRegistry
         'categorize' => CategorizeEngine::class,
         'shield' => ShieldEngine::class,
         'timeline' => TimelineEngine::class,
+        'stroop' => StroopEngine::class,
     ];
 
     /**

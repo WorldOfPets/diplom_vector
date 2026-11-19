@@ -52,19 +52,6 @@ class Trainer extends Model
     }
 
     /**
-     * Config safe to send to the browser: scoring keys are stripped.
-     *
-     * @return array<string, mixed>
-     */
-    public function publicConfig(): array
-    {
-        $config = $this->config ?? [];
-        unset($config['scoring'], $config['key']);
-
-        return $config;
-    }
-
-    /**
      * @return array<string, mixed>
      */
     public function scoringConfig(): array

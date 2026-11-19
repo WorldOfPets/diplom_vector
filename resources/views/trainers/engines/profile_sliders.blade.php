@@ -23,15 +23,19 @@
             <div>
                 <div class="flex items-center justify-between text-xs font-bold">
                     <span class="flex items-center gap-2">
-                        <span class="h-1.5 w-1.5 rounded-full" style="background: {{ $area['color'] ?? '#2D5BFF' }};"></span>
+                        <span class="h-1.5 w-1.5 rounded-full" style="background: {{ \App\Support\Color::safe($area['color'] ?? null) }};"></span>
                         {{ $area['label'] }}
                     </span>
-                    <span style="color: {{ $area['color'] ?? '#2D5BFF' }};" x-text="response.values?.['{{ $area['key'] }}'] ?? 5"></span>
+                    <span style="color: {{ \App\Support\Color::safe($area['color'] ?? null) }};" x-text="response.values?.[@js($area['key'])] ?? 5"></span>
                 </div>
-                <input type="range" min="0" max="{{ $max }}" x-model.number="response.values['{{ $area['key'] }}']" class="mt-2 w-full accent-[#2D5BFF]" aria-label="{{ $area['label'] }}">
+                <input type="range" min="0" max="{{ $max }}" x-model.number="response.values[@js($area['key'])]" class="mt-2 w-full accent-[#2D5BFF]" aria-label="{{ $area['label'] }}">
             </div>
         @endforeach
     </div>
+
+    @if(collect($areas)->contains(fn (array $area): bool => ($area['key'] ?? '') === 'anxiety'))
+        <p class="mt-3 text-[11px] leading-relaxed text-muted">Для тревоги высокий балл — это сигнал, а не цель. Остальные шкалы — ресурсы, на которые можно опираться.</p>
+    @endif
 
     <div class="mt-6 grid gap-4 sm:grid-cols-2">
         <div>

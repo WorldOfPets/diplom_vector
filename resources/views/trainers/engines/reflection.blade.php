@@ -25,6 +25,14 @@
         texts: { ...(response.texts || {}) }
      })">
 
+    @if(! empty($config['drawing']))
+        @include('trainers.engines.partials.drawing', ['config' => $config, 'saved' => $saved, 'readonly' => false])
+    @endif
+
+    @if(! empty($config['puppet']))
+        @include('trainers.engines.partials.puppet', ['config' => $config, 'saved' => $saved])
+    @endif
+
     <div class="card p-5 sm:p-6">
         <div class="flex items-start gap-3">
             <span class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-coral-soft text-coral"><x-icon name="heart" class="h-4 w-4" /></span>

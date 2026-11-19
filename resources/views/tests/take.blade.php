@@ -41,9 +41,30 @@
         <div class="mt-4 h-2 overflow-hidden rounded-full bg-line">
             <div class="h-full rounded-full bg-brand transition-all" :style="`width: ${progress}%`"></div>
         </div>
-        <div class="mt-2 flex items-center justify-between text-[11px] font-semibold text-muted">
-            <span x-text="`Задание ${index + 1} из ${items.length}`"></span>
-            <span x-text="`Отвечено: ${answeredCount}`"></span>
+        <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-muted">
+            <span class="flex items-center gap-3">
+                <span x-text="`Задание ${index + 1} из ${items.length}`"></span>
+                <button type="button" @click="navigatorOpen = !navigatorOpen" class="font-bold text-brand underline underline-offset-2" :aria-expanded="navigatorOpen">
+                    Все задания
+                </button>
+            </span>
+            <span x-text="`Отвечено: ${answeredCount} из ${items.length}`"></span>
+        </div>
+
+        <div x-show="navigatorOpen" x-cloak x-transition class="mt-3 rounded-2xl border border-line bg-surface p-3">
+            <div class="grid grid-cols-8 gap-1.5 sm:grid-cols-10">
+                <template x-for="(item, itemIndex) in items" :key="item.id">
+                    <button type="button"
+                            @click="goTo(itemIndex)"
+                            class="grid h-8 place-items-center rounded-lg border text-[11px] font-extrabold transition"
+                            :class="itemIndex === index
+                                ? 'border-brand bg-brand text-white'
+                                : (isAnswered(item) ? 'border-mint/30 bg-mint-soft text-mint-ink' : 'border-line bg-paper text-muted hover:border-brand/30')"
+                            :aria-label="`Задание ${itemIndex + 1}`"
+                            x-text="itemIndex + 1"></button>
+                </template>
+            </div>
+            <p class="mt-2 text-[10px] font-semibold text-muted">С ответом — зелёные, текущее — синее. Клавиши ← → и 1–6 работают без мыши.</p>
         </div>
 
         <div class="card mt-5 p-5 sm:p-7">
@@ -219,7 +240,7 @@
             </button>
         </div>
 
-        <p class="mt-3 text-center text-[10px] leading-relaxed text-muted">Ответы сохраняются каждые 12 секунд. Ключи не передаются в браузер.</p>
+        <p class="mt-3 text-center text-[10px] leading-relaxed text-muted">Ответы сохраняются каждые 12 секунд. Ключи не передаются в браузер. Клавиши ← → и 1–6 работают без мыши.</p>
 
         <div x-show="confirmSubmit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-inverse/50 p-4 backdrop-blur-sm">
             <div class="w-full max-w-md rounded-3xl border border-line bg-surface p-6 shadow-xl" @click.outside="confirmSubmit = false">

@@ -26,7 +26,7 @@
 @endphp
 
 @push('head')
-    <script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
         window.VECTOR_CAMERA = {
             targets: @json(array_column($targets, 'id')),
             labels: @json($labels),

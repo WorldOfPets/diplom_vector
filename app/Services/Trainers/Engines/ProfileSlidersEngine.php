@@ -41,20 +41,17 @@ class ProfileSlidersEngine extends BaseEngine
 
         $max = (int) ($config['max'] ?? 10);
         $metrics = [];
-        $filled = 0;
 
         foreach ($areas as $area) {
             $key = $area['key'];
             $value = max(0, min($max, (int) ($values[$key] ?? 0)));
             $metrics['area_'.$key] = $value;
-            if ($value > 0) {
-                $filled++;
-            }
         }
 
         $metrics['actions_count'] = count($actions);
 
-        $percent = count($areas) > 0 ? round($filled / count($areas) * 100, 1) : 100.0;
+        // Every slider always has a value, and 0 is a valid answer, so the screen is complete once opened.
+        $percent = 100.0;
         $focusLabel = collect($areas)->firstWhere('key', $focus)['label'] ?? null;
 
         return new EngineResult(

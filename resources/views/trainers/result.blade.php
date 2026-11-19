@@ -83,6 +83,14 @@
                 </div>
             </section>
 
+            @php
+                $drawingConfig = $attempt->config_snapshot['drawing'] ?? $trainer->config['drawing'] ?? null;
+            @endphp
+
+            @if(! empty($drawingConfig) && ! empty($attempt->response['strokes']))
+                @include('trainers.engines.partials.drawing', ['config' => ['drawing' => $drawingConfig], 'saved' => $attempt->response ?? [], 'readonly' => true])
+            @endif
+
             @if($chartConfig)
                 <section class="card p-5 sm:p-6">
                     <div class="flex items-center justify-between">
@@ -99,10 +107,10 @@
                         @foreach($chart['data'] as $row)
                             <div class="flex items-center justify-between rounded-xl bg-paper/60 px-3 py-2 text-xs">
                                 <span class="flex items-center gap-2 font-semibold text-ink-soft">
-                                    <span class="h-1.5 w-1.5 rounded-full" style="background: {{ $row['color'] }};"></span>
+                                    <span class="h-1.5 w-1.5 rounded-full" style="background: {{ \App\Support\Color::safe($row['color'] ?? null) }};"></span>
                                     {{ $row['label'] }}
                                 </span>
-                                <span class="font-extrabold" style="color: {{ $row['color'] }};">{{ (int) $row['value'] }}%</span>
+                                <span class="font-extrabold" style="color: {{ \App\Support\Color::safe($row['color'] ?? null) }};">{{ (int) $row['value'] }}%</span>
                             </div>
                         @endforeach
                     </div>
@@ -120,7 +128,7 @@
                     <p class="section-eyebrow">Ваш герб</p>
                     <h2 class="mt-1 text-lg font-extrabold">Профессиональная опора</h2>
                     <div class="mx-auto mt-4 max-w-sm">
-                        <div class="grid grid-cols-2 gap-1 overflow-hidden p-4 pb-12 text-white" style="clip-path: polygon(50% 0, 100% 15%, 92% 82%, 50% 100%, 8% 82%, 0 15%); background: {{ $snapshot['color'] ?? '#2D5BFF' }}; min-height: 360px;">
+                        <div class="grid grid-cols-2 gap-1 overflow-hidden p-4 pb-12 text-white" style="clip-path: polygon(50% 0, 100% 15%, 92% 82%, 50% 100%, 8% 82%, 0 15%); background: {{ \App\Support\Color::safe($snapshot['color'] ?? null) }}; min-height: 360px;">
                             @foreach($shieldSectors as $sector)
                                 <div class="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/15 p-2 text-center">
                                     <span class="text-lg">{{ $shieldSymbols[$sector['key']] ?? $sector['emoji'] ?? '✦' }}</span>

@@ -52,6 +52,8 @@ class ReflectionEngine extends BaseEngine
             'actions_label' => ['type' => 'text', 'label' => 'Заголовок действий'],
             'actions_hint' => ['type' => 'text', 'label' => 'Подсказка к действиям'],
             'require_actions' => ['type' => 'boolean', 'label' => 'Требовать выбор действия'],
+            'drawing' => ['type' => 'json', 'label' => 'Рисование (JSON)', 'hint' => 'Например: {"background":"body","palette":["#FF6B4A","#2D5BFF"],"min_strokes":2}'],
+            'puppet' => ['type' => 'json', 'label' => 'Кукла (JSON)', 'hint' => 'Например: {"title":"Соберите позу","target":"confident","targets":{"confident":"уверенный ответ"}}'],
         ];
     }
 
@@ -107,22 +109,91 @@ class ReflectionEngine extends BaseEngine
         $required += count($config['texts'] ?? []);
         $filled += count(array_filter($texts, fn ($value): bool => is_string($value) && trim($value) !== ''));
 
+        $strokeCount = 0;
+        $drawing = ! empty($config['drawing']) && is_array($config['drawing']) ? $config['drawing'] : null;
+
+        if ($drawing !== null) {
+            $strokes = is_array($response['strokes'] ?? null) ? $response['strokes'] : [];
+            $strokeCount = count(array_filter(
+                $strokes,
+                fn (mixed $stroke): bool => is_array($stroke)
+                    && is_array($stroke['points'] ?? null)
+                    && count($stroke['points']) > 0,
+            ));
+
+            $metrics['strokes'] = $strokeCount;
+            $required++;
+
+            if ($strokeCount >= max(1, (int) ($drawing['min_strokes'] ?? 1))) {
+                $filled++;
+            }
+        }
+
+        $puppet = ! empty($config['puppet']) && is_array($config['puppet']) ? $config['puppet'] : null;
+        $puppetReading = null;
+
+        if ($puppet !== null) {
+            $state = is_array($response['puppet'] ?? null) ? $response['puppet'] : [];
+            $parts = ['head', 'shoulders', 'arms', 'posture'];
+            $filledParts = count(array_filter(
+                $parts,
+                fn (string $part): bool => isset($state[$part]) && is_string($state[$part]) && $state[$part] !== '',
+            ));
+
+            $metrics['puppet_parts'] = $filledParts;
+            $required++;
+
+            if ($filledParts === count($parts)) {
+                $filled++;
+            }
+
+            $puppetReading = is_string($state['state'] ?? null) ? $state['state'] : null;
+        }
+
         $percent = $required > 0 ? min(100, round($filled / $required * 100, 1)) : 100.0;
 
         $feedback = [];
         if ($deltas !== []) {
-            arsort($deltas);
             $bestKey = array_key_first($deltas);
             $best = $deltas[$bestKey];
+            $maxAbs = abs($best);
+
+            foreach ($deltas as $key => $value) {
+                if (abs($value) > $maxAbs) {
+                    $maxAbs = abs($value);
+                    $bestKey = $key;
+                    $best = $value;
+                }
+            }
+
             $label = collect($config['sliders_after'] ?? [])->firstWhere('key', $bestKey)['label'] ?? $bestKey;
 
-            $feedback[] = $best > 0
-                ? "Заметнее всего снизилось напряжение по шкале «{$label}»: −{$best}."
-                : 'Пока изменений нет — это нормально. Можно вернуться к упражнению позже.';
+            $feedback[] = $best !== 0
+                ? "Наибольшее изменение — по шкале «{$label}»: ".($best > 0 ? '+' : '').$best.'.'
+                : 'Пока без изменений — это нормально. Можно вернуться к упражнению позже.';
         }
 
         if ($actions !== []) {
             $feedback[] = 'Вы выбрали '.count($actions).' способ(а) самопомощи. Важно не количество, а один способ, который реально сработает завтра.';
+        }
+
+        if ($drawing !== null) {
+            $minStrokes = max(1, (int) ($drawing['min_strokes'] ?? 1));
+
+            if ($strokeCount >= $minStrokes) {
+                $feedback[] = "Рисунок сохранён: {$strokeCount} штрих(ов). Посмотрите на него через минуту — что замечаете?";
+            } elseif ($strokeCount > 0) {
+                $left = $minStrokes - $strokeCount;
+                $feedback[] = "Добавьте ещё {$left} штрих(а), чтобы завершить рисунок.";
+            } else {
+                $feedback[] = 'Добавьте хотя бы один штрих: рисунок помогает заметить состояние, даже если он некрасивый.';
+            }
+        }
+
+        if ($puppetReading !== null) {
+            $labels = is_array($puppet['targets'] ?? null) ? $puppet['targets'] : [];
+            $readingLabel = $labels[$puppetReading] ?? ($puppetReading === 'neutral' ? 'нейтрально' : $puppetReading);
+            $feedback[] = 'Поза читается как «'.$readingLabel.'». Проверьте, совпадает ли это с вашим состоянием и что хочется изменить.';
         }
 
         return new EngineResult(

@@ -63,7 +63,7 @@ class EiInterpretationService
 
     /**
      * @param  array<string, float>  $scores
-     * @return list<array{module: string, title: string, reason: string}>
+     * @return list<array{module: string, title: string, reason: string, trainers: list<string>}>
      */
     public function recommendations(array $scores): array
     {
@@ -72,10 +72,30 @@ class EiInterpretationService
         asort($sorted);
 
         $map = [
-            EiBranch::Perception->value => ['understand-self', 'Начните с распознавания', 'Колесо эмоций, карта тела и дневник.'],
-            EiBranch::Understanding->value => ['understand-self', 'Разберите причины', 'Кейсы и сцены с контекстом.'],
-            EiBranch::Using->value => ['manage-state', 'Управляйте состоянием', 'Дыхание и переключение внимания.'],
-            EiBranch::Managing->value => ['communicate', 'Тренируйте стратегии', 'Конфликтные развилки и Я-высказывания.'],
+            EiBranch::Perception->value => [
+                'understand-self',
+                'Начните с распознавания',
+                'Колесо эмоций, карта тела и дневник.',
+                ['emotion-wheel', 'body-map'],
+            ],
+            EiBranch::Understanding->value => [
+                'understand-self',
+                'Разберите причины',
+                'Кейсы и сцены с контекстом.',
+                ['three-views', 'behind-behavior'],
+            ],
+            EiBranch::Using->value => [
+                'manage-state',
+                'Управляйте состоянием',
+                'Дыхание и переключение внимания.',
+                ['breathing-478', 'stop-crank'],
+            ],
+            EiBranch::Managing->value => [
+                'communicate',
+                'Тренируйте стратегии',
+                'Конфликтные развилки и Я-высказывания.',
+                ['conflict-fork', 'i-statement'],
+            ],
         ];
 
         foreach (array_slice($sorted, 0, 2, true) as $branch => $score) {
@@ -87,6 +107,7 @@ class EiInterpretationService
                 'module' => $map[$branch][0],
                 'title' => $map[$branch][1],
                 'reason' => $map[$branch][2],
+                'trainers' => $map[$branch][3],
             ];
         }
 

@@ -186,6 +186,10 @@ class EiScoringService
      */
     private function scoreOrdering(array $key, array $response): array
     {
+        if (array_key_exists('orderTouched', $response) && $response['orderTouched'] !== true) {
+            return [0.0, 1.0];
+        }
+
         $target = array_values($key['order'] ?? []);
         $order = array_values(array_filter($response['order'] ?? [], 'is_string'));
 

@@ -6,6 +6,7 @@ use App\Enums\EiBranch;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\TestResponse;
+use App\Models\Trainer;
 use App\Services\ContentProgressService;
 use App\Services\EiInterpretationService;
 use App\Services\EiScoringService;
@@ -19,6 +20,10 @@ use Illuminate\View\View;
 
 class TestController extends Controller
 {
+    private const TOO_FAST_MIN_SAMPLES = 5;
+
+    private const TOO_FAST_MEDIAN_MS = 2500;
+
     public function __construct(
         private readonly EiScoringService $eiScoring,
         private readonly MotivationScoringService $motivationScoring,
@@ -31,14 +36,20 @@ class TestController extends Controller
             ->where('is_active', true)
             ->withCount(['items' => fn ($query) => $query->where('is_active', true)])
             ->orderBy('id')
+            ->get();
+
+        $latestAttempts = TestAttempt::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'completed')
+            ->orderByDesc('finished_at')
+            ->orderByDesc('id')
             ->get()
-            ->each(function (Test $test) use ($request): void {
-                $test->setAttribute('latest_attempt', $test->attempts()
-                    ->where('user_id', $request->user()->id)
-                    ->where('status', 'completed')
-                    ->latest('finished_at')
-                    ->first());
-            });
+            ->unique('test_id')
+            ->keyBy('test_id');
+
+        $tests->each(function (Test $test) use ($latestAttempts): void {
+            $test->setAttribute('latest_attempt', $latestAttempts->get($test->id));
+        });
 
         return view('tests.index', [
             'tests' => $tests,
@@ -188,7 +199,9 @@ class TestController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($attempt, $result): void {
+        $itemsTotal = $items->count();
+
+        DB::transaction(function () use ($attempt, $result, $itemsTotal): void {
             TestResponse::query()->where('test_attempt_id', $attempt->id)->delete();
 
             foreach ($result['responses'] as $itemId => $response) {
@@ -208,6 +221,7 @@ class TestController extends Controller
                 'draft' => null,
                 'overall' => $result['overall'],
                 'level' => $result['level'],
+                'items_total' => $itemsTotal,
                 'finished_at' => now(),
                 'duration_sec' => $attempt->started_at
                     ? max(1, $attempt->started_at->diffInSeconds(now()))
@@ -222,14 +236,17 @@ class TestController extends Controller
         ]);
     }
 
-    public function result(Request $request, TestAttempt $attempt): View
+    public function result(Request $request, TestAttempt $attempt): View|RedirectResponse
     {
         abort_unless($attempt->user_id === $request->user()->id || $request->user()->isAdmin(), 403);
+
+        if ($attempt->status !== 'completed') {
+            return redirect()->route('tests.take', $attempt);
+        }
 
         $test = $attempt->test;
         $scores = $attempt->scores ?? [];
         $isMotivation = $test->kind === 'motivation';
-
         if ($isMotivation) {
             $subscaleLabels = $test->config['subscales'] ?? [
                 'internal' => 'Внутренняя мотивация',
@@ -266,6 +283,19 @@ class TestController extends Controller
             ->latest('finished_at')
             ->first();
 
+        $quality = $this->quality($attempt);
+        $recommendations = $isMotivation ? [] : $this->interpretation->recommendations($scores);
+        $trainerSlugs = collect($recommendations)
+            ->flatMap(fn (array $recommendation): array => $recommendation['trainers'])
+            ->all();
+        $trainerTitles = $trainerSlugs === []
+            ? collect()
+            : Trainer::query()
+                ->whereIn('slug', $trainerSlugs)
+                ->where('is_published', true)
+                ->whereHas('module', fn ($query) => $query->where('is_published', true))
+                ->pluck('title', 'slug');
+
         return view('tests.result', [
             'attempt' => $attempt,
             'test' => $test,
@@ -275,10 +305,157 @@ class TestController extends Controller
             'overallText' => $isMotivation
                 ? 'Мотивация — это не черта характера, а состояние, которое можно поддерживать через цели, среду и маленькие победы.'
                 : $this->interpretation->overall((float) $attempt->overall, $attempt->level ?? 'average'),
-            'recommendations' => $isMotivation ? [] : $this->interpretation->recommendations($scores),
+            'recommendations' => $recommendations,
+            'trainerTitles' => $trainerTitles,
             'previous' => $previous,
             'delta' => $previous?->overall !== null ? round((float) $attempt->overall - (float) $previous->overall, 1) : null,
+            'quality' => $quality,
         ]);
+    }
+
+    public function history(Request $request, Test $test): View
+    {
+        abort_unless($test->is_active, 404);
+
+        $attempts = $test->attempts()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'completed')
+            ->latest('finished_at')
+            ->limit(50)
+            ->get()
+            ->reverse()
+            ->values();
+
+        $isMotivation = $test->kind === 'motivation';
+        $branchKeys = $isMotivation
+            ? array_keys($test->config['subscales'] ?? [
+                'internal' => 'Внутренняя мотивация',
+                'external' => 'Внешняя мотивация',
+                'professional' => 'Профессиональная направленность',
+            ])
+            : array_values(array_filter(
+                $test->config['branches'] ?? array_map(fn (EiBranch $branch): string => $branch->value, EiBranch::eiBranches()),
+                fn (mixed $key): bool => is_string($key) && EiBranch::tryFrom($key) !== null,
+            ));
+
+        $labels = [];
+        $colors = [];
+        $motivationPalette = ['#D97706', '#F59E0B', '#FBBF24', '#B45309'];
+        $motivationIndex = 0;
+
+        foreach ($branchKeys as $key) {
+            if ($isMotivation) {
+                $labels[$key] = ($test->config['subscales'] ?? [])[$key] ?? $key;
+                $colors[$key] = $motivationPalette[$motivationIndex % count($motivationPalette)];
+                $motivationIndex++;
+
+                continue;
+            }
+
+            $branch = EiBranch::tryFrom((string) $key);
+            $labels[$key] = $branch?->label() ?? (string) $key;
+            $colors[$key] = $branch?->color() ?? '#2D5BFF';
+        }
+
+        $series = array_fill_keys($branchKeys, []);
+        $points = [];
+
+        foreach ($attempts as $attempt) {
+            $scores = $attempt->scores ?? [];
+
+            $points[] = [
+                'id' => $attempt->id,
+                'date' => $attempt->finished_at,
+                'overall' => (float) $attempt->overall,
+                'level' => $attempt->level ?? 'average',
+                'duration' => $attempt->duration_sec,
+            ];
+
+            foreach ($branchKeys as $key) {
+                $series[$key][] = array_key_exists($key, $scores) ? (float) $scores[$key] : null;
+            }
+        }
+
+        return view('tests.history', [
+            'test' => $test,
+            'points' => $points,
+            'branchKeys' => array_values($branchKeys),
+            'labels' => $labels,
+            'colors' => $colors,
+            'series' => $series,
+        ]);
+    }
+
+    /**
+     * @return array{median_ms: int|null, too_fast: bool, skipped: int}
+     */
+    private function quality(TestAttempt $attempt): array
+    {
+        $responses = TestResponse::query()
+            ->with('item')
+            ->where('test_attempt_id', $attempt->id)
+            ->get();
+
+        $timed = $responses
+            ->pluck('ms')
+            ->filter(fn (mixed $ms): bool => is_numeric($ms) && (int) $ms > 0)
+            ->map(fn (mixed $ms): int => (int) $ms)
+            ->sort()
+            ->values();
+
+        $count = $timed->count();
+        $median = null;
+
+        if ($count > 0) {
+            $middle = intdiv($count, 2);
+            $median = $count % 2 === 1
+                ? (int) $timed->get($middle)
+                : (int) round(((int) $timed->get($middle - 1) + (int) $timed->get($middle)) / 2);
+        }
+        $expected = (int) ($attempt->items_total ?? $attempt->test->items()->where('is_active', true)->count());
+        $skipped = max(0, $expected - $responses->count())
+            + $responses
+                ->filter(fn (TestResponse $response): bool => ! $this->answered($response))
+                ->count();
+
+        return [
+            'median_ms' => $median,
+            'too_fast' => $median !== null && $timed->count() >= self::TOO_FAST_MIN_SAMPLES && $median < self::TOO_FAST_MEDIAN_MS,
+            'skipped' => $skipped,
+        ];
+    }
+
+    private function answered(TestResponse $response): bool
+    {
+        $data = is_array($response->response) ? $response->response : [];
+        $value = $data['value'] ?? null;
+
+        return match ($response->item?->type) {
+            'single', 'scale', 'motivation' => $value !== null && $value !== '',
+            'multi' => ($data['values'] ?? []) !== [] || ($data['value'] ?? null) !== null,
+            'scene', 'image_choice' => ($data['emotions'] ?? []) !== [],
+            'best_worst' => ! empty($data['best']) && ! empty($data['worst']) && $data['best'] !== $data['worst'],
+            'ordering' => ($data['orderTouched'] ?? true) === true && ($data['order'] ?? []) !== [],
+            'matching' => $this->matchingAnswered($data, $response->item),
+            default => $value !== null && $value !== '',
+        };
+    }
+
+    private function matchingAnswered(array $data, mixed $item): bool
+    {
+        $config = is_array($item?->config) ? $item->config : [];
+        $leftCount = count($config['left'] ?? []);
+
+        if ($leftCount === 0) {
+            return false;
+        }
+
+        $pairs = array_filter(
+            $data['pairs'] ?? [],
+            fn (mixed $value): bool => is_string($value) && $value !== '',
+        );
+
+        return count($pairs) >= $leftCount;
     }
 
     private function motivationText(string $key, float $value): string

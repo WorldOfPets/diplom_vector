@@ -4,16 +4,21 @@
 
 @php
     $isMotivation = $test->kind === 'motivation';
+    $branchCount = $branches->count();
+    $useBar = $isMotivation || $branchCount < 3;
+    $chartColors = $isMotivation
+        ? array_slice(['#D97706', '#F59E0B', '#FBBF24', '#B45309'], 0, max($branchCount, 1))
+        : $branches->pluck('color')->all();
 
-    if ($isMotivation) {
+    if ($useBar) {
         $chartConfig = [
             'type' => 'bar',
             'data' => [
-                'labels' => ['Интерес', 'Внешние факторы', 'Проф. смысл'],
+                'labels' => $branches->pluck('label')->all(),
                 'datasets' => [[
                     'label' => 'Профиль',
                     'data' => $branches->pluck('value')->all(),
-                    'backgroundColor' => ['#D97706', '#F59E0B', '#FBBF24'],
+                    'backgroundColor' => $chartColors,
                     'borderRadius' => 8,
                     'barThickness' => 24,
                 ]],
@@ -107,6 +112,7 @@
                     <div>
                         <p class="section-eyebrow">Профиль</p>
                         <h2 class="mt-1 text-xl font-extrabold">{{ $isMotivation ? 'По шкалам' : 'По ветвям' }}</h2>
+                        <p class="mt-1 max-w-md text-[11px] leading-relaxed text-muted">Формулировки описывают выполнение заданий в этой попытке, а не устойчивые черты.</p>
                     </div>
                     @if($isMotivation)
                         <span class="chip border-amber/20 bg-amber-soft text-amber-ink">без «хорошо/плохо»</span>
@@ -157,11 +163,22 @@
                     <h2 class="mt-1 text-xl font-extrabold">С чего начать</h2>
                     <div class="mt-4 grid gap-3 sm:grid-cols-2">
                         @foreach($recommendations as $recommendation)
-                            <a href="{{ route('modules.show', $recommendation['module']) }}" class="group rounded-2xl border border-line bg-surface p-4 transition hover:border-brand/30">
+                            <div class="rounded-2xl border border-line bg-surface p-4">
                                 <p class="text-sm font-extrabold">{{ $recommendation['title'] }}</p>
                                 <p class="mt-1 text-xs leading-relaxed text-muted">{{ $recommendation['reason'] }}</p>
-                                <p class="mt-3 text-[11px] font-bold text-brand">Перейти в модуль →</p>
-                            </a>
+                                <div class="mt-3 flex flex-wrap gap-1.5">
+                                    <a href="{{ route('modules.show', $recommendation['module']) }}" class="chip border-brand/20 bg-brand-soft text-brand-deep transition hover:border-brand">
+                                        Модуль →
+                                    </a>
+                                    @foreach($recommendation['trainers'] as $trainerSlug)
+                                        @if($trainerTitles->has($trainerSlug))
+                                            <a href="{{ route('trainers.show', $trainerSlug) }}" class="chip bg-paper text-ink-soft transition hover:border-brand/30">
+                                                {{ $trainerTitles[$trainerSlug] }}
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
                         @endforeach
                     </div>
                 </section>
@@ -197,8 +214,27 @@
                 <h2 class="mt-1 text-lg font-extrabold">{{ $isMotivation ? 'Поддержите мотивацию' : 'Закрепите навык' }}</h2>
                 <p class="mt-2 text-xs leading-relaxed text-muted">Один тренажёр в день — лучше, чем марафон раз в неделю. Начните с модуля, который рекомендован выше.</p>
                 <a href="{{ route('modules.index') }}" class="btn-primary mt-4 w-full py-2.5 text-xs">К модулям</a>
+                @if($test->is_active && $attempt->user_id === auth()->id())
+                    <a href="{{ route('tests.history', $test) }}" class="btn-secondary mt-2 w-full py-2 text-xs">История и динамика</a>
+                @endif
                 <a href="{{ route('tests.index') }}" class="btn-ghost mt-2 w-full py-2 text-xs">Все диагностики</a>
             </div>
+
+            @if($quality['too_fast'] || $quality['skipped'] > 0)
+                <div class="rounded-3xl border border-amber/20 bg-amber-soft/40 p-5">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-ink">Как читать результат</p>
+                    @if($quality['too_fast'])
+                        <p class="mt-2 text-xs leading-relaxed text-amber-ink">
+                            Медианное время на задание — {{ number_format($quality['median_ms'] / 1000, 1, ',', ' ') }} с. Очень быстрый темп: результат может быть менее устойчивым. Лучше пройти ещё раз в спокойном темпе.
+                        </p>
+                    @endif
+                    @if($quality['skipped'] > 0)
+                        <p class="mt-2 text-xs leading-relaxed text-amber-ink">
+                            Без ответа: {{ $quality['skipped'] }}. Такие задания не вошли в расчёт или оценены в 0 — это влияет на балл, но не на вашу ценность.
+                        </p>
+                    @endif
+                </div>
+            @endif
 
             @if($isMotivation)
                 <div class="rounded-3xl border border-amber/20 bg-amber-soft/50 p-5">

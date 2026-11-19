@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'overall',
     'level',
     'duration_sec',
+    'items_total',
     'started_at',
     'finished_at',
 ])]
@@ -32,6 +33,7 @@ class TestAttempt extends Model
             'draft' => 'array',
             'overall' => 'decimal:2',
             'duration_sec' => 'integer',
+            'items_total' => 'integer',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];

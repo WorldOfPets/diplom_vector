@@ -62,16 +62,17 @@ Route::middleware(['auth', 'onboarded'])->group(function (): void {
     Route::post('/shorts/{short:slug}/view', [ShortController::class, 'view'])->name('shorts.view');
 
     Route::get('/trainers/{trainer:slug}', [TrainerController::class, 'show'])->name('trainers.show');
-    Route::post('/trainers/{trainer:slug}', [TrainerController::class, 'submit'])->name('trainers.submit');
+    Route::post('/trainers/{trainer:slug}', [TrainerController::class, 'submit'])->middleware('throttle:30,1')->name('trainers.submit');
     Route::get('/attempts/{attempt}', [TrainerController::class, 'result'])->name('trainers.result');
-    Route::post('/attempts/{attempt}/reflection', [ReflectionController::class, 'store'])->name('reflections.store');
+    Route::post('/attempts/{attempt}/reflection', [ReflectionController::class, 'store'])->middleware('throttle:20,1')->name('reflections.store');
 
     Route::get('/diagnostics', [TestController::class, 'index'])->name('tests.index');
     Route::get('/diagnostics/{test:slug}', [TestController::class, 'show'])->name('tests.show');
-    Route::post('/diagnostics/{test:slug}/start', [TestController::class, 'start'])->name('tests.start');
+    Route::get('/diagnostics/{test:slug}/history', [TestController::class, 'history'])->name('tests.history');
+    Route::post('/diagnostics/{test:slug}/start', [TestController::class, 'start'])->middleware('throttle:20,1')->name('tests.start');
     Route::get('/test-attempts/{attempt}', [TestController::class, 'take'])->name('tests.take');
-    Route::post('/test-attempts/{attempt}/autosave', [TestController::class, 'autosave'])->name('tests.autosave');
-    Route::post('/test-attempts/{attempt}', [TestController::class, 'submit'])->name('tests.submit');
+    Route::post('/test-attempts/{attempt}/autosave', [TestController::class, 'autosave'])->middleware('throttle:60,1')->name('tests.autosave');
+    Route::post('/test-attempts/{attempt}', [TestController::class, 'submit'])->middleware('throttle:10,1')->name('tests.submit');
     Route::get('/test-results/{attempt}', [TestController::class, 'result'])->name('tests.result');
 
     Route::get('/diary', [DiaryController::class, 'index'])->name('diary.index');

@@ -5,6 +5,10 @@
 @php
     $eiTests = $tests->filter(fn ($test) => $test->kind !== 'motivation');
     $motivationTests = $tests->filter(fn ($test) => $test->kind === 'motivation');
+    $recentTest = $tests
+        ->filter(fn ($test) => $test->latest_attempt !== null)
+        ->sortByDesc(fn ($test) => $test->latest_attempt->finished_at)
+        ->first();
     $diagCovers = [
         'ei_full' => 'media/photos/exam-writing.jpg',
         'ei_situational' => 'media/photos/discussion.jpg',
@@ -22,7 +26,14 @@
                 {{ tone('tests.index.lead') }}
             </p>
         </div>
-        <span class="chip shrink-0"><x-icon name="shield" class="h-3.5 w-3.5 text-mint-ink" /> без диагнозов</span>
+        <div class="flex flex-wrap items-center gap-2">
+            @if($recentTest)
+                <a href="{{ route('tests.history', $recentTest) }}" class="chip border-brand/20 bg-brand-soft text-brand-deep transition hover:border-brand">
+                    История и динамика →
+                </a>
+            @endif
+            <span class="chip shrink-0"><x-icon name="shield" class="h-3.5 w-3.5 text-mint-ink" /> без диагнозов</span>
+        </div>
     </div>
 
     <div class="mt-8 grid gap-4 lg:grid-cols-3">

@@ -16,7 +16,6 @@ use App\Models\TheoryProgress;
 use App\Models\Trainer;
 use App\Models\TrainerAttempt;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 class ContentProgressService
 {
@@ -77,10 +76,17 @@ class ContentProgressService
             ->distinct()
             ->count('short_id');
 
-        $diaryDays = DiaryEntry::query()
+        $diaryPractice = DiaryEntry::query()
             ->where('user_id', $user->id)
+            ->whereIn('slot', ['morning', 'day', 'evening'])
+            ->selectRaw('date(created_at) as practice_date, slot')
             ->distinct()
-            ->count(DB::raw('date(created_at)'));
+            ->get()
+            ->groupBy('practice_date')
+            ->sortByDesc(fn ($entries): int => $entries->count())
+            ->take(7);
+
+        $diaryDone = min(21, $diaryPractice->sum(fn ($entries): int => $entries->count()));
 
         $mimicDone = CameraProgress::query()
             ->where('user_id', $user->id)
@@ -90,7 +96,7 @@ class ContentProgressService
         $categories = [
             $this->category('shorts', 'Просмотрено', 'мини-видео', $shortsDone, $shortIds->count(), 'var(--color-coral-ink)', 'play'),
             $this->category('theory', 'Изучено', 'шаги теории · 3 на материал', $theoryDone, $theoryTotal, 'var(--color-amber-ink)', 'book'),
-            $this->category('diary', 'Дневник', 'дней практики', min(7, $diaryDays), 7, 'var(--color-mint-ink)', 'calendar'),
+            $this->category('diary', 'Дневник', 'утро/день/вечер · 3 в день', $diaryDone, 21, 'var(--color-mint-ink)', 'calendar'),
             $this->category('trainers', 'Пройдено', 'тренажёры (кроме «Мимики»)', $trainersDone, $trainerIds->count(), 'var(--color-brand-deep)', 'sparkles'),
             $this->category('mimic', 'Мимика', 'эмоций', min(7, $mimicDone), 7, 'var(--color-lilac-ink)', 'camera'),
             $this->category('tests', 'Диагностировано', 'тесты и кейсы', $testsDone, $testIds->count(), 'var(--color-lilac-ink)', 'chart'),

@@ -6,7 +6,6 @@ use App\Models\DiaryEntry;
 use App\Models\Emotion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DiaryController extends Controller
@@ -59,6 +58,16 @@ class DiaryController extends Controller
             ->take(6)
             ->values();
 
+        $practice = DiaryEntry::query()
+            ->where('user_id', $user->id)
+            ->whereIn('slot', ['morning', 'day', 'evening'])
+            ->selectRaw('date(created_at) as practice_date, slot')
+            ->distinct()
+            ->get()
+            ->groupBy('practice_date')
+            ->sortByDesc(fn ($entries): int => $entries->count())
+            ->take(7);
+
         return view('diary.index', [
             'emotions' => Emotion::query()->orderBy('sort')->get(),
             'todayEntries' => $todayEntries,
@@ -67,10 +76,8 @@ class DiaryController extends Controller
             'chart' => $chart,
             'emotionCounts' => $emotionCounts,
             'entriesCount' => DiaryEntry::query()->where('user_id', $user->id)->count(),
-            'practiceDays' => min(7, DiaryEntry::query()
-                ->where('user_id', $user->id)
-                ->distinct()
-                ->count(DB::raw('date(created_at)'))),
+            'practiceDays' => $practice->count(),
+            'practiceUnits' => min(21, $practice->sum(fn ($dayEntries): int => $dayEntries->count())),
         ]);
     }
 

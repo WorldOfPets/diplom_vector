@@ -124,17 +124,19 @@ class ContentProgressTest extends TestCase
         ]);
 
         foreach (range(0, 6) as $offset) {
-            $entry = DiaryEntry::query()->create([
-                'user_id' => $user->id,
-                'entry_date' => today()->subDays($offset)->toDateString(),
-                'slot' => 'now',
-                'intensity' => 3,
-            ]);
+            foreach (['morning', 'day', 'evening'] as $slot) {
+                $entry = DiaryEntry::query()->create([
+                    'user_id' => $user->id,
+                    'entry_date' => today()->subDays($offset)->toDateString(),
+                    'slot' => $slot,
+                    'intensity' => 3,
+                ]);
 
-            $entry->forceFill([
-                'created_at' => now()->subDays($offset),
-                'updated_at' => now()->subDays($offset),
-            ])->saveQuietly();
+                $entry->forceFill([
+                    'created_at' => now()->subDays($offset),
+                    'updated_at' => now()->subDays($offset),
+                ])->saveQuietly();
+            }
         }
 
         foreach (['happy', 'sad', 'angry', 'surprised', 'fearful', 'disgusted', 'neutral'] as $emotion) {
@@ -150,15 +152,16 @@ class ContentProgressTest extends TestCase
 
         $summary = $service->sync($user);
 
-        $this->assertSame(20, $summary['done']);
-        $this->assertSame(20, $summary['total']);
+        $this->assertSame(34, $summary['done']);
+        $this->assertSame(34, $summary['total']);
         $this->assertSame(100.0, (float) $summary['percent']);
         $this->assertTrue($summary['certificate_ready']);
 
         $diary = collect($summary['categories'])->firstWhere('key', 'diary');
         $mimic = collect($summary['categories'])->firstWhere('key', 'mimic');
 
-        $this->assertSame(7, $diary['done']);
+        $this->assertSame(21, $diary['done']);
+        $this->assertSame(21, $diary['total']);
         $this->assertSame(7, $mimic['done']);
 
         foreach (['initial', 'fifty', 'ninety'] as $stage) {

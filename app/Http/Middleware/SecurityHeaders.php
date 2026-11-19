@@ -20,6 +20,10 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
 
+        $scriptPolicy = app()->environment('local')
+            ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+            : "script-src 'self' 'unsafe-eval' 'nonce-{$nonce}'";
+
         $response->headers->set('Content-Security-Policy', implode('; ', [
             "default-src 'self'",
             "base-uri 'self'",
@@ -28,7 +32,7 @@ class SecurityHeaders
             "form-action 'self'",
             "manifest-src 'self'",
             "worker-src 'self' blob:",
-            "script-src 'self' 'unsafe-eval' 'nonce-{$nonce}'",
+            $scriptPolicy,
             "script-src-attr 'none'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https:",

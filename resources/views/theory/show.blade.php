@@ -203,14 +203,14 @@
         @if($article->hasTask())
             <section
                 class="card mt-5 p-5 sm:p-6"
-                x-data='theoryTask({
-                    url: @json(route('theory.task', $article)),
-                    csrf: @json(csrf_token()),
-                    options: @json($taskOptions),
-                    blankIds: @json($blankIds),
-                    completed: @json($taskCompleted),
-                    filled: @json($taskCompleted ? $taskAnswers : (object) [])
-                })'
+                x-data="theoryTask({{ Illuminate\Support\Js::from([
+                    'url' => route('theory.task', $article),
+                    'csrf' => csrf_token(),
+                    'options' => $taskOptions,
+                    'blankIds' => $blankIds,
+                    'completed' => $taskCompleted,
+                    'filled' => $taskCompleted ? $taskAnswers : (object) [],
+                ]) }})"
             >
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <div>

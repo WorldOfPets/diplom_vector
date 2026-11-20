@@ -5,7 +5,7 @@
 @section('content')
     <div class="card overflow-hidden">
         <div class="relative h-36">
-            <x-photo path="media/photos/lecture.jpg" credit="none" class="h-full" img-class="h-full w-full object-cover" loading="eager" />
+            <x-photo path="{{ \App\Support\SlideImages::title('what-is-ei') }}" credit="none" class="h-full" img-class="h-full w-full object-cover" loading="eager" />
             <div class="absolute inset-0 bg-gradient-to-t from-inverse/70 to-transparent"></div>
             <p class="absolute bottom-3 left-5 right-5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">эмоции · мотивация · практика</p>
         </div>

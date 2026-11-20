@@ -23,11 +23,10 @@
     <div class="mt-4 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
         <div class="card relative overflow-hidden p-6 sm:p-7">
             <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full {{ $c['soft'] }}"></div>
-            @if($module->cover_path)
-                <div class="-mx-6 -mt-6 mb-5 h-48 overflow-hidden sm:-mx-7 sm:-mt-7">
-                    <x-photo :path="$module->cover_path" credit="overlay" class="h-full" img-class="h-full w-full object-cover" loading="eager" />
-                </div>
-            @endif
+            @php $moduleSlide = \App\Support\SlideImages::module($module->slug, 1); @endphp
+            <div class="-mx-6 -mt-6 mb-5 h-48 overflow-hidden sm:-mx-7 sm:-mt-7">
+                <x-photo :path="$moduleSlide" credit="overlay" class="h-full" img-class="h-full w-full object-cover" loading="eager" />
+            </div>
             <div class="relative">
                 <span class="grid h-12 w-12 place-items-center rounded-2xl {{ $c['soft'] }} {{ $c['text'] }}">
                     <x-icon :name="$module->icon ?: 'sparkles'" class="h-5 w-5" />
@@ -75,11 +74,9 @@
                 @endphp
                 <div class="card p-4 sm:flex sm:items-center sm:gap-4 sm:p-5">
                     <div class="flex items-start gap-3 sm:flex-1 sm:items-center sm:gap-4">
-                        @if($trainer->cover_path)
-                            <div class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl sm:h-16 sm:w-20">
-                                <x-photo :path="$trainer->cover_path" credit="none" class="h-full" img-class="h-full w-full object-cover" />
-                            </div>
-                        @endif
+                        <div class="h-14 w-14 shrink-0 overflow-hidden rounded-2xl sm:h-16 sm:w-20">
+                            <x-photo :path="\App\Support\SlideImages::module($module->slug, $index + 2)" credit="none" class="h-full" img-class="h-full w-full object-cover" />
+                        </div>
 
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">

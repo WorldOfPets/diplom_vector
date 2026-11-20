@@ -68,7 +68,7 @@
     </div>
 
     <div class="mt-6 overflow-hidden rounded-3xl border border-line/60">
-        <x-photo path="media/photos/writing.jpg" credit="overlay" class="h-36 sm:h-44" img-class="h-full w-full object-cover" />
+        <x-photo path="{{ \App\Support\SlideImages::contentSlide('emotion-dynamics', 1) }}" credit="overlay" class="h-36 sm:h-44" img-class="h-full w-full object-cover" />
     </div>
 
     <div class="mt-7 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">

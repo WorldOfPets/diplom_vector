@@ -5,12 +5,7 @@
 @php
     $kind = \App\Enums\TestKind::tryFrom($test->kind);
     $isMotivation = $test->kind === 'motivation';
-    $cover = [
-        'ei_full' => 'media/photos/exam-writing.jpg',
-        'ei_situational' => 'media/photos/discussion.jpg',
-        'ei_express' => 'media/photos/focus.jpg',
-        'motivation' => 'media/photos/planner.jpg',
-    ][$test->kind] ?? null;
+    $cover = \App\Support\SlideImages::test($test->kind);
     $branches = $isMotivation
         ? collect($test->config['subscales'] ?? [
             'internal' => 'Внутренняя мотивация',

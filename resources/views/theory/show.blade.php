@@ -13,7 +13,9 @@
     $taskParts = $task
         ? preg_split('/(\{\{\d+\}\})/', $task['text'], -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY)
         : [];
-    $firstDone = $article->hasTrackableVideo() ? $videoCompleted : $isRead;
+    $firstDone = $article->hasSlides() ? $slidesCompleted : ($article->hasTrackableVideo() ? $videoCompleted : $isRead);
+    $hasSlides = $article->hasSlides();
+    $slidesCount = count($slides);
 @endphp
 
 @section('content')
@@ -38,19 +40,23 @@
             }
          }"
          @theory-video-completed.window="advance('firstDone')"
+         @theory-slides-completed.window="advance('firstDone')"
          @theory-task-completed.window="advance('taskDone')"
-         x-init="if (!read) { setTimeout(async () => { try { await fetch('{{ route('theory.read', $article) }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', Accept: 'application/json' } }); read = true; if ({{ $article->hasTrackableVideo() ? 'false' : 'true' }}) advance('firstDone'); } catch (e) {} }, 5000); }">
+         x-init="if (!read && !{{ $hasSlides ? 'true' : 'false' }}) { setTimeout(async () => { try { await fetch('{{ route('theory.read', $article) }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', Accept: 'application/json' } }); read = true; if ({{ $article->hasTrackableVideo() ? 'false' : 'true' }}) advance('firstDone'); } catch (e) {} }, 5000); }">
         <div class="mb-3 flex flex-wrap items-center gap-2">
             <span class="chip">{{ $article->reading_minutes }} мин</span>
             <span class="chip"><x-icon name="target" class="h-3 w-3 text-mint-ink" /> <span x-text="steps + '/3 шага'">{{ $completedSteps }}/3 шага</span></span>
             <span class="chip" x-show="read" x-cloak><x-icon name="check" class="h-3 w-3 text-mint" /> прочитано</span>
-            @if($article->hasVideo())
+            @if($article->hasVideo() && ! $hasSlides)
                 <span class="chip">видео</span>
+            @endif
+            @if($hasSlides)
+                <span class="chip">слайды · {{ $slidesCount }}</span>
             @endif
             @if($article->hasTask())
                 <span class="chip">задание</span>
             @endif
-            @if($article->hasTrackableVideo() && $videoCompleted)
+            @if($article->hasTrackableVideo() && $videoCompleted && ! $hasSlides)
                 <span class="chip"><x-icon name="check" class="h-3 w-3 text-mint-ink" /> видео 80%</span>
             @endif
         </div>
@@ -60,11 +66,45 @@
             <p class="mt-3 text-base leading-relaxed text-muted">{{ $article->excerpt }}</p>
         @endif
 
-        @if($article->cover_path)
+        @if($hasSlides)
+            <div
+                class="mt-6 overflow-hidden rounded-3xl border border-line bg-inverse"
+                x-data="theorySlides({
+                    slides: @js($slides),
+                    viewed: @js($slidesProgress),
+                    minSeconds: 10,
+                    completed: @js($slidesCompleted),
+                    url: '{{ route('theory.slides', $article) }}',
+                    csrf: '{{ csrf_token() }}'
+                })"
+            >
+                <div class="relative aspect-video bg-black">
+                    <img :src="current" :alt="`Слайд ${index + 1} из ${total}`" class="h-full w-full object-contain">
+                </div>
+                <div class="border-t border-white/10 px-4 py-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <button type="button" @click="go(-1)" :disabled="index === 0"
+                                class="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-sm font-extrabold text-white transition disabled:opacity-30" aria-label="Предыдущий слайд">←</button>
+                        <div class="text-center">
+                            <p class="text-[11px] font-extrabold text-white" x-text="`Слайд ${index + 1} из ${total}`"></p>
+                            <p class="text-[10px] font-semibold text-white/60" x-show="!ready" x-cloak x-text="`Ещё ${remaining} с`"></p>
+                            <p class="text-[10px] font-semibold text-mint" x-show="ready" x-cloak>слайд засчитан</p>
+                        </div>
+                        <button type="button" @click="go(1)" :disabled="index === total - 1 || !ready"
+                                class="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-sm font-extrabold text-white transition disabled:opacity-30" aria-label="Следующий слайд">→</button>
+                    </div>
+                    <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
+                        <div class="h-full rounded-full bg-brand transition-all" :style="`width: ${(viewedCount / total) * 100}%`"></div>
+                    </div>
+                    <p class="mt-2 text-[10px] font-semibold text-white/50" x-show="!completed" x-cloak>Каждый слайд — не меньше 10 секунд. Вся презентация = 1 единица прогресса.</p>
+                    <p class="mt-2 text-[10px] font-semibold text-mint" x-show="completed" x-cloak>Презентация просмотрена: +1 единица прогресса.</p>
+                </div>
+            </div>
+        @elseif($article->cover_path)
             <x-photo :path="$article->cover_path" credit="caption" class="mt-6 rounded-3xl border border-line" img-class="max-h-[420px] w-full object-cover" loading="eager" />
         @endif
 
-        @if($embed)
+        @if(! $hasSlides && $embed)
             <div
                 class="mt-6 overflow-hidden rounded-3xl border border-line bg-inverse"
                 x-data="theoryVideo({
@@ -101,7 +141,7 @@
                     </p>
                 </div>
             </div>
-        @elseif($localVideo)
+        @elseif(! $hasSlides && $localVideo)
             <div
                 class="mt-6 overflow-hidden rounded-3xl border border-line bg-inverse"
                 x-data="theoryLocalVideo({
@@ -142,7 +182,7 @@
                     </p>
                 </div>
             </div>
-        @elseif($article->video_url)
+        @elseif(! $hasSlides && $article->video_url)
             <x-alert type="info" class="mt-6">
                 Видео доступно по ссылке: <a href="{{ $article->video_url }}" target="_blank" rel="noopener" class="font-bold underline">открыть видео</a>.
             </x-alert>
@@ -160,12 +200,12 @@
             <div class="mt-4 space-y-2">
                 <div class="flex items-center gap-3 rounded-2xl border p-3" :class="firstDone ? 'border-mint/20 bg-mint-soft/50' : 'border-line bg-paper/60'">
                     <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl" :class="firstDone ? 'bg-mint-soft text-mint-ink' : 'bg-surface text-muted'">
-                        <x-icon :name="$article->hasTrackableVideo() ? 'play' : 'book'" class="h-4 w-4" />
+                        <x-icon :name="$article->hasSlides() ? 'grid' : ($article->hasTrackableVideo() ? 'play' : 'book')" class="h-4 w-4" />
                     </span>
                     <div class="min-w-0 flex-1">
-                        <p class="text-xs font-extrabold">{{ $article->hasTrackableVideo() ? 'Видео просмотрено' : 'Статья прочитана' }}</p>
+                        <p class="text-xs font-extrabold">{{ $article->hasSlides() ? 'Презентация просмотрена' : ($article->hasTrackableVideo() ? 'Видео просмотрено' : 'Статья прочитана') }}</p>
                         <p class="mt-0.5 text-[10px] leading-relaxed text-muted">
-                            {{ $article->hasTrackableVideo() ? 'Нужно 80% видео и включённый звук.' : 'Первый шаг засчитывается после открытия материала.' }}
+                            {{ $article->hasSlides() ? 'Все слайды просмотрены — по 10 секунд каждый.' : ($article->hasTrackableVideo() ? 'Нужно 80% видео и включённый звук.' : 'Первый шаг засчитывается после открытия материала.') }}
                         </p>
                     </div>
                     <span class="text-[11px] font-extrabold" :class="firstDone ? 'text-mint-ink' : 'text-muted'" x-text="firstDone ? '+1' : '0/1'">{{ $firstDone ? '+1' : '0/1' }}</span>

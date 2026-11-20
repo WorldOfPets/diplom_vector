@@ -13,12 +13,9 @@
         'amber' => ['soft' => 'bg-amber-soft', 'text' => 'text-amber-ink', 'ring' => '#D97706'],
     ];
     $hasEi = $tests->contains(fn ($test) => $test->kind !== 'motivation' && $test->latest_attempt !== null);
-    $diagCovers = [
-        'ei_full' => 'media/photos/exam-writing.jpg',
-        'ei_situational' => 'media/photos/discussion.jpg',
-        'ei_express' => 'media/photos/focus.jpg',
-        'motivation' => 'media/photos/planner.jpg',
-    ];
+    $diagCovers = $tests
+        ->mapWithKeys(fn ($test): array => [$test->kind => \App\Support\SlideImages::test($test->kind)])
+        ->all();
 @endphp
 
 @section('content')
@@ -142,11 +139,9 @@
                             <p class="mt-1 text-sm text-muted">{{ $nextTrainer->module->title }} · {{ $nextTrainer->duration_min }} минут</p>
                             <p class="mt-3 max-w-md text-sm leading-relaxed text-ink-soft">{{ $nextTrainer->subtitle }}</p>
                         </div>
-                        @if($nextTrainer->cover_path)
-                            <div class="hidden h-24 w-40 shrink-0 overflow-hidden rounded-2xl md:block">
-                                <x-photo :path="$nextTrainer->cover_path" credit="none" class="h-full" img-class="h-full w-full object-cover" />
-                            </div>
-                        @endif
+                        <div class="hidden h-24 w-40 shrink-0 overflow-hidden rounded-2xl md:block">
+                            <x-photo :path="\App\Support\SlideImages::module($nextTrainer->module->slug, 1)" credit="none" class="h-full" img-class="h-full w-full object-cover" />
+                        </div>
                         <a href="{{ route('trainers.show', $nextTrainer) }}" class="btn-primary shrink-0">
                             {{ tone('dashboard.next.cta') }} <x-icon name="play" class="h-4 w-4" />
                         </a>
@@ -193,11 +188,9 @@
                             $progress = $module->progress ?? 0;
                         @endphp
                         <a href="{{ route('modules.show', $module) }}" class="card group overflow-hidden p-4 transition hover:-translate-y-0.5 hover:shadow-soft">
-                            @if($module->cover_path)
-                                <div class="-mx-4 -mt-4 mb-3 h-24 overflow-hidden">
-                                    <x-photo :path="$module->cover_path" credit="none" class="h-full" img-class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-                                </div>
-                            @endif
+                            <div class="-mx-4 -mt-4 mb-3 h-24 overflow-hidden">
+                                <x-photo :path="\App\Support\SlideImages::module($module->slug, 1)" credit="none" class="h-full" img-class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                            </div>
                             <div class="flex items-start gap-3">
                                 <span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl {{ $c['soft'] }} {{ $c['text'] }}">
                                     <x-icon :name="$module->icon ?: 'sparkles'" class="h-[18px] w-[18px]" />

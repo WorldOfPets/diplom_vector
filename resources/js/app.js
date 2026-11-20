@@ -694,6 +694,128 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('theorySlides', (options) => ({
+        slides: options.slides ?? [],
+        index: 0,
+        viewed: options.viewed ?? {},
+        minSeconds: Number(options.minSeconds ?? 10),
+        seconds: 0,
+        completed: options.completed === true,
+        timer: null,
+        saving: false,
+
+        init() {
+            this.startTimer();
+        },
+
+        destroy() {
+            this.stopTimer();
+        },
+
+        get total() {
+            return this.slides.length;
+        },
+
+        get current() {
+            return this.slides[this.index] ?? '';
+        },
+
+        get isViewed() {
+            return Number(this.viewed[this.index] ?? 0) >= this.minSeconds;
+        },
+
+        get viewedCount() {
+            return Object.values(this.viewed).filter((value) => Number(value) >= this.minSeconds).length;
+        },
+
+        get ready() {
+            return this.seconds >= this.minSeconds;
+        },
+
+        get remaining() {
+            return Math.max(0, this.minSeconds - this.seconds);
+        },
+
+        startTimer() {
+            this.stopTimer();
+            this.seconds = this.isViewed ? this.minSeconds : 0;
+
+            if (this.isViewed) {
+                return;
+            }
+
+            this.timer = setInterval(() => {
+                if (document.hidden) {
+                    return;
+                }
+
+                this.seconds = Math.min(this.minSeconds, this.seconds + 1);
+
+                if (this.seconds >= this.minSeconds) {
+                    this.markViewed();
+                }
+            }, 1000);
+        },
+
+        stopTimer() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+        },
+
+        go(delta) {
+            const next = this.index + delta;
+
+            if (next < 0 || next >= this.total) {
+                return;
+            }
+
+            if (delta > 0 && !this.ready) {
+                return;
+            }
+
+            this.index = next;
+            this.startTimer();
+        },
+
+        async markViewed() {
+            this.stopTimer();
+
+            const index = this.index;
+            this.viewed = { ...this.viewed, [index]: this.minSeconds };
+
+            if (this.saving) {
+                return;
+            }
+
+            this.saving = true;
+
+            try {
+                const response = await fetch(options.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': options.csrf,
+                    },
+                    body: JSON.stringify({ index, seconds: this.minSeconds }),
+                });
+
+                const data = await response.json();
+
+                if (data.completed) {
+                    this.completed = true;
+                    this.$dispatch('theory-slides-completed');
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.saving = false;
+            }
+        },
+    }));
+
     Alpine.data('theoryTask', (options) => ({
         url: options.url,
         csrf: options.csrf,

@@ -86,6 +86,7 @@ Route::middleware(['auth', 'onboarded'])->group(function (): void {
     Route::get('/theory/{article:slug}/source', [TheoryController::class, 'openSource'])->name('theory.source');
     Route::post('/theory/{article:slug}/read', [TheoryController::class, 'markRead'])->name('theory.read');
     Route::post('/theory/{article:slug}/video', [TheoryController::class, 'markVideo'])->name('theory.video');
+    Route::post('/theory/{article:slug}/slides', [TheoryController::class, 'markSlide'])->middleware('throttle:60,1')->name('theory.slides');
     Route::post('/theory/{article:slug}/task', [TheoryController::class, 'completeTask'])->name('theory.task');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');

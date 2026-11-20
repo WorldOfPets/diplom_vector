@@ -32,11 +32,10 @@
             @endphp
             <a href="{{ route('modules.show', $module) }}" class="card group relative overflow-hidden p-6 transition hover:-translate-y-0.5 hover:shadow-soft">
                 <div class="absolute -right-8 -top-8 h-32 w-32 rounded-full {{ $c['soft'] }} opacity-70"></div>
-                @if($module->cover_path)
-                    <div class="-mx-6 -mt-6 mb-5 h-36 overflow-hidden">
-                        <x-photo :path="$module->cover_path" credit="overlay" class="h-full" img-class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-                    </div>
-                @endif
+                @php $slideCover = \App\Support\SlideImages::module($module->slug); @endphp
+                <div class="-mx-6 -mt-6 mb-5 h-36 overflow-hidden">
+                    <x-photo :path="$slideCover" credit="overlay" class="h-full" img-class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                </div>
                 <div class="relative">
                     <div class="flex items-start justify-between gap-4">
                         <span class="grid h-12 w-12 place-items-center rounded-2xl {{ $c['soft'] }} {{ $c['text'] }}">
@@ -65,7 +64,7 @@
 
         <a href="{{ route('camera.show') }}" class="relative overflow-hidden rounded-3xl bg-inverse p-6 text-white transition hover:-translate-y-0.5">
             <div class="absolute inset-0">
-                <x-photo path="media/photos/portrait-neutral.jpg" credit="none" class="h-full" img-class="h-full w-full object-cover opacity-35" />
+                <x-photo path="{{ \App\Support\SlideImages::contentSlide('emotion-perception', 1) }}" credit="none" class="h-full" img-class="h-full w-full object-cover opacity-35" />
             </div>
             <div class="absolute inset-0 bg-gradient-to-t from-inverse via-inverse/85 to-inverse/30"></div>
             <div class="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5"></div>

@@ -94,7 +94,7 @@
     </div>
 
     <div class="mt-5 overflow-hidden rounded-3xl border border-line/60">
-        <x-photo path="media/photos/campus-path.jpg" credit="overlay" class="h-32 sm:h-40" img-class="h-full w-full object-cover" />
+        <x-photo path="{{ \App\Support\SlideImages::contentSlide('ei-practice-plan', 1) }}" credit="overlay" class="h-32 sm:h-40" img-class="h-full w-full object-cover" />
     </div>
 
     <section id="settings" class="mt-7 scroll-mt-24">

@@ -50,6 +50,9 @@ class TheoryController extends Controller
             'isRead' => $article->isReadBy($request->user()),
             'videoCompleted' => $progress->video_completed_at !== null,
             'videoProgress' => (float) ($progress->video_progress ?? 0),
+            'slides' => array_map(static fn (string $path): string => asset($path), $article->slidesList()),
+            'slidesProgress' => is_array($progress->slides_progress) ? $progress->slides_progress : [],
+            'slidesCompleted' => $progress->slides_completed_at !== null,
             'sourceOpened' => $progress->source_opened_at !== null,
             'taskCompleted' => $progress->task_completed_at !== null,
             'completedSteps' => $article->completedSteps($progress),
@@ -58,6 +61,62 @@ class TheoryController extends Controller
                 ->where('sort', '>', $article->sort)
                 ->orderBy('sort')
                 ->first(),
+        ]);
+    }
+
+    public function markSlide(Request $request, TheoryArticle $article): JsonResponse
+    {
+        abort_unless($article->is_published && $article->hasSlides(), 404);
+
+        $data = $request->validate([
+            'index' => ['required', 'integer', 'min:0'],
+            'seconds' => ['required', 'integer', 'min:1', 'max:120'],
+        ]);
+
+        $total = count($article->slidesList());
+
+        abort_if($data['index'] >= $total, 422);
+
+        $progress = TheoryProgress::query()->firstOrNew([
+            'user_id' => $request->user()->id,
+            'theory_article_id' => $article->id,
+        ]);
+
+        $viewed = is_array($progress->slides_progress) ? $progress->slides_progress : [];
+        $key = (string) $data['index'];
+        $viewed[$key] = max((int) ($viewed[$key] ?? 0), (int) $data['seconds']);
+
+        $minimum = 10;
+        $completed = true;
+
+        for ($i = 0; $i < $total; $i++) {
+            if ((int) ($viewed[(string) $i] ?? 0) < $minimum) {
+                $completed = false;
+
+                break;
+            }
+        }
+
+        $progress->slides_progress = $viewed;
+
+        if ($completed && $progress->slides_completed_at === null) {
+            $progress->slides_completed_at = now();
+            $progress->read_at = $progress->read_at ?? now();
+        }
+
+        $progress->save();
+
+        if ($completed) {
+            app(ContentProgressService::class)->sync($request->user());
+        }
+
+        $seen = count(array_filter($viewed, static fn (mixed $value): bool => (int) $value >= $minimum));
+
+        return response()->json([
+            'ok' => true,
+            'viewed' => $seen,
+            'total' => $total,
+            'completed' => $completed,
         ]);
     }
 

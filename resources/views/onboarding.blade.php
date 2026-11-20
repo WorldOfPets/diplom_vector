@@ -9,7 +9,7 @@
 @section('content')
     <div x-data="{ step: {{ $errors->has('consent') ? 2 : 1 }} }" class="mx-auto max-w-2xl">
         <div class="relative mb-7 h-40 overflow-hidden rounded-3xl border border-line/70">
-            <x-photo path="media/photos/campus-arch.jpg" credit="none" class="h-full" img-class="h-full w-full object-cover" loading="eager" />
+            <x-photo path="{{ \App\Support\SlideImages::title('ei-practice-plan') }}" credit="none" class="h-full" img-class="h-full w-full object-cover" loading="eager" />
             <div class="absolute inset-0 bg-gradient-to-t from-inverse/75 via-inverse/10 to-transparent"></div>
             <p class="absolute bottom-4 left-5 right-5 text-sm font-extrabold text-white">Три минуты на знакомство — и можно начинать.</p>
         </div>

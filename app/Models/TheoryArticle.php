@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'body',
     'task',
     'cover_path',
+    'slides',
     'video_url',
     'video_path',
     'source_url',
@@ -30,6 +31,7 @@ class TheoryArticle extends Model
     {
         return [
             'task' => 'array',
+            'slides' => 'array',
             'reading_minutes' => 'integer',
             'sort' => 'integer',
             'is_published' => 'boolean',
@@ -65,6 +67,24 @@ class TheoryArticle extends Model
         return filled($this->video_url) || filled($this->video_path);
     }
 
+    /**
+     * @return list<string>
+     */
+    public function slidesList(): array
+    {
+        return is_array($this->slides) ? array_values(array_filter($this->slides, 'is_string')) : [];
+    }
+
+    public function hasSlides(): bool
+    {
+        return $this->slidesList() !== [];
+    }
+
+    public function coverSlide(): ?string
+    {
+        return $this->slidesList()[0] ?? null;
+    }
+
     public function hasTask(): bool
     {
         return is_array($this->task) && filled($this->task['text'] ?? null) && filled($this->task['answers'] ?? null);
@@ -74,6 +94,10 @@ class TheoryArticle extends Model
     {
         if ($progress === null) {
             return false;
+        }
+
+        if ($this->hasSlides()) {
+            return $progress->slides_completed_at !== null;
         }
 
         return $this->hasTrackableVideo()

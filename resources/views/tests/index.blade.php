@@ -9,12 +9,9 @@
         ->filter(fn ($test) => $test->latest_attempt !== null)
         ->sortByDesc(fn ($test) => $test->latest_attempt->finished_at)
         ->first();
-    $diagCovers = [
-        'ei_full' => 'media/photos/exam-writing.jpg',
-        'ei_situational' => 'media/photos/discussion.jpg',
-        'ei_express' => 'media/photos/focus.jpg',
-        'motivation' => 'media/photos/planner.jpg',
-    ];
+    $diagCovers = $tests
+        ->mapWithKeys(fn ($test): array => [$test->kind => \App\Support\SlideImages::test($test->kind)])
+        ->all();
 @endphp
 
 @section('content')

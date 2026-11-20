@@ -30,8 +30,9 @@
                 @endphp
                 <a href="{{ route('theory.show', $article) }}" class="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-soft">
                     <div class="relative aspect-[16/9] bg-gradient-to-br from-brand-soft via-paper to-lilac-soft">
-                        @if($article->cover_path)
-                            <x-photo :path="$article->cover_path" credit="overlay" class="h-full" img-class="h-full w-full object-cover" />
+                        @php $cover = $article->coverSlide() ?? $article->cover_path; @endphp
+                        @if($cover)
+                            <x-photo :path="$cover" credit="overlay" class="h-full" img-class="h-full w-full object-cover" />
                         @else
                             <div class="flex h-full items-center justify-center text-3xl">📖</div>
                         @endif
@@ -45,7 +46,9 @@
                     <div class="flex flex-1 flex-col p-5">
                         <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
                             <span>{{ $article->reading_minutes }} мин</span>
-                            @if($article->hasVideo())
+                            @if($article->hasSlides())
+                                <span>· слайды</span>
+                            @elseif($article->hasVideo())
                                 <span>· видео</span>
                             @endif
                             @if($article->hasTask())

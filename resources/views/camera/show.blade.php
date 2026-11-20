@@ -53,9 +53,6 @@
         <div class="space-y-4">
             <section class="card relative overflow-hidden p-6 sm:p-7">
                 <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-lilac-soft"></div>
-                <div class="-mx-6 -mt-6 mb-5 h-40 overflow-hidden sm:-mx-7 sm:-mt-7">
-                    <x-photo path="media/photos/portrait-neutral.jpg" credit="overlay" class="h-full" img-class="h-full w-full object-cover" loading="eager" />
-                </div>
                 <div class="relative">
                     <span class="chip border-lilac/20 bg-lilac-soft text-lilac-ink">практикум · камера</span>
                     <h1 class="mt-3 text-3xl font-extrabold tracking-tight">Мимика</h1>

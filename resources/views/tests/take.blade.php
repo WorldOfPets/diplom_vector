@@ -76,21 +76,6 @@
 
             <h1 class="mt-4 text-xl font-extrabold leading-snug tracking-tight sm:text-2xl" x-text="current.prompt"></h1>
 
-            <template x-if="current.media_path">
-                <div class="mt-4 overflow-hidden rounded-3xl border border-line bg-paper">
-                    <img :src="mediaUrl(current.media_path)" :alt="current.config.image_alt || current.prompt" class="max-h-80 w-full object-cover" loading="lazy">
-                    <template x-if="current.media_credit">
-                        <div class="flex flex-wrap items-center gap-1 px-3 py-2 text-[10px] font-semibold text-muted">
-                            <span>Фото:</span>
-                            <a :href="current.media_credit.author_url" target="_blank" rel="noopener noreferrer" class="underline decoration-line underline-offset-2 hover:text-ink" x-text="current.media_credit.author"></a>
-                            <span>/</span>
-                            <a :href="current.media_credit.source_url" target="_blank" rel="noopener noreferrer" class="underline decoration-line underline-offset-2 hover:text-ink" x-text="current.media_credit.source"></a>
-                            <span>· иллюстрация, а не диагностический стимул</span>
-                        </div>
-                    </template>
-                </div>
-            </template>
-
             <div class="mt-5">
                 <template x-if="current.type === 'single'">
                     <div class="space-y-2">

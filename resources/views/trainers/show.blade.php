@@ -23,12 +23,6 @@
                 <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{{ $trainer->description ?: $trainer->subtitle }}</p>
             </div>
 
-            @if($trainer->cover_path)
-                <div class="mb-5 overflow-hidden rounded-3xl border border-line">
-                    <x-photo :path="$trainer->cover_path" credit="overlay" class="h-52 sm:h-64" img-class="h-full w-full object-cover" loading="eager" />
-                </div>
-            @endif
-
             @if($completedAttempt)
                 <x-alert type="success" class="mb-5">
                     <div class="flex flex-wrap items-center justify-between gap-3">

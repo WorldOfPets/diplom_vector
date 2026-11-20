@@ -122,6 +122,22 @@
                             <p class="max-w-xs text-xs text-white/70">Нажмите «Включить камеру» и разрешите доступ в браузере.</p>
                         </div>
                         <div class="absolute left-3 top-3 rounded-full bg-black/40 px-3 py-1.5 text-[10px] font-bold text-white/80 backdrop-blur" id="camera-status">Готово к запуску</div>
+
+                        <div id="camera-bars" class="pointer-events-none absolute right-2 top-2 z-10 w-36 rounded-xl bg-black/45 p-2 text-white backdrop-blur-sm sm:right-3 sm:top-3 sm:w-44 sm:p-2.5">
+                            <p class="text-[8px] font-bold uppercase tracking-[0.12em] text-white/55">Уверенность</p>
+                            <div class="mt-1 space-y-0.5 sm:space-y-1">
+                                @foreach($expressions as $key => [$label, $emoji])
+                                    <div data-bar="{{ $key }}" class="flex items-center gap-1.5">
+                                        <span class="w-16 shrink-0 truncate text-[8px] font-semibold leading-none">{{ $label }}</span>
+                                        <div class="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
+                                            <div data-fill data-active="false" class="h-full rounded-full bg-brand/60 transition-all data-[active=true]:bg-mint" style="width: 0%"></div>
+                                        </div>
+                                        <span data-score class="w-6 text-right text-[8px] font-bold tabular-nums text-white/70 sm:w-7">0%</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
                         <div class="absolute inset-x-0 bottom-0 h-1.5 bg-white/10">
                             <div id="camera-progress" class="h-full bg-mint transition-all" style="width: 0%"></div>
                         </div>
@@ -160,26 +176,6 @@
                         </div>
                     </div>
                 </section>
-
-                <section class="card p-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="section-eyebrow">Уверенность модели</p>
-                            <p class="mt-1 text-xs text-muted">Это вероятность распознавания, а не «сила эмоции».</p>
-                        </div>
-                    </div>
-                    <div id="camera-bars" class="mt-4 space-y-2">
-                        @foreach($expressions as $key => [$label, $emoji])
-                            <div data-bar="{{ $key }}" class="flex items-center gap-3">
-                                <span class="w-24 shrink-0 text-[11px] font-bold text-ink-soft">{{ $emoji }} {{ $label }}</span>
-                                <div class="h-2 flex-1 overflow-hidden rounded-full bg-paper-deep">
-                                    <div data-fill class="h-full rounded-full bg-brand/40 transition-all" style="width: 0%"></div>
-                                </div>
-                                <span data-score class="w-10 text-right text-[10px] font-extrabold tabular-nums text-muted">0%</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </section>
             @endif
         </div>
 
@@ -191,7 +187,8 @@
                     <li><span class="font-extrabold">2.</span> Включите камеру и встаньте так, чтобы лицо было хорошо видно.</li>
                     <li><span class="font-extrabold">3.</span> Удерживайте выражение, пока полоса не заполнится.</li>
                 </ol>
-                <p class="mt-3 text-[11px] leading-relaxed text-muted">Модель может ошибаться на слабом свете, в очках или при необычном ракурсе. Это ограничение технологии, а не ваша ошибка.</p>
+                <p class="mt-3 text-[11px] leading-relaxed text-muted">Панель поверх кадра показывает вероятность каждого паттерна: зелёная полоса — текущая цель. Это вероятность распознавания, а не «сила эмоции».</p>
+                <p class="mt-2 text-[11px] leading-relaxed text-muted">Модель может ошибаться на слабом свете, в очках или при необычном ракурсе. Это ограничение технологии, а не ваша ошибка.</p>
             </div>
 
             @if($completed)

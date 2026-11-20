@@ -1,9 +1,28 @@
 User-agent: *
+Allow: /$
+Allow: /privacy
+Allow: /credits
+
 Disallow: /admin
+Disallow: /dashboard
+Disallow: /onboarding
+Disallow: /modules
+Disallow: /shorts
+Disallow: /trainers
+Disallow: /attempts
+Disallow: /diagnostics
+Disallow: /test-attempts
+Disallow: /test-results
 Disallow: /diary
+Disallow: /theory
 Disallow: /progress
 Disallow: /certificate
 Disallow: /profile
-Disallow: /attempts
-Disallow: /test-attempts
+Disallow: /camera
 Disallow: /dev-login
+Disallow: /login
+Disallow: /auth
+Disallow: /up
+Disallow: /api
+
+Sitemap: https://vectoredu.space/sitemap.xml

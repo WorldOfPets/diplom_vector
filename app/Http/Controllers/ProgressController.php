@@ -43,7 +43,7 @@ class ProgressController extends Controller
         $user = $request->user();
         $summary = $this->progress->sync($user);
 
-        if ($summary['percent'] < ContentProgressService::CERTIFICATE_THRESHOLD) {
+        if (! $summary['certificate_ready']) {
             return redirect()
                 ->route('progress.index')
                 ->withErrors(['certificate' => 'Сертификат доступен после прохождения 95% контента.']);
@@ -82,7 +82,7 @@ class ProgressController extends Controller
             return redirect()
                 ->route('progress.index')
                 ->withErrors([
-                    'certificate' => $summary['percent'] >= ContentProgressService::CERTIFICATE_THRESHOLD
+                    'certificate' => $summary['certificate_ready']
                         ? (Feedback::query()->where('user_id', $user->id)->exists()
                             ? 'Сертификат ещё не выпущен. Обновите страницу или обратитесь к администратору.'
                             : 'Сначала заполните форму обратной связи.')

@@ -19,7 +19,10 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <p class="text-sm font-extrabold">{{ $article->title }}</p>
                         <span class="chip">{{ $article->reading_minutes }} мин</span>
-                        @if($article->hasVideo())
+                        @if($article->hasSlides())
+                            <span class="chip border-brand/20 bg-brand-soft text-brand-deep">слайды · {{ count($article->slidesList()) }}</span>
+                        @endif
+                        @if($article->hasVideo() && ! $article->hasSlides())
                             <span class="chip">{{ $article->video_path ? 'локальное видео' : 'Rutube' }}</span>
                         @endif
                         @if($article->source_url)

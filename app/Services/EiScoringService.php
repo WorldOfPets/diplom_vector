@@ -28,6 +28,10 @@ class EiScoringService
             $response = $answers[$item->id] ?? [];
             [$score, $max] = $this->scoreItem($item, $response);
 
+            $weight = max(0.1, (float) ($item->weight ?? 1));
+            $score *= $weight;
+            $max *= $weight;
+
             $responses[$item->id] = [
                 'response' => $response,
                 'score' => $score,

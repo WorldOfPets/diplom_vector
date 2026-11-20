@@ -147,6 +147,16 @@ class TestController extends Controller
         abort_unless($attempt->user_id === $request->user()->id, 403);
         abort_if($attempt->status === 'completed', 422, 'Попытка уже завершена.');
 
+        $limitMinutes = (int) ($attempt->test->time_limit_min ?? 0);
+
+        if (
+            $limitMinutes > 0
+            && $attempt->started_at !== null
+            && now()->gt($attempt->started_at->copy()->addMinutes($limitMinutes)->addSeconds(30))
+        ) {
+            return response()->json(['message' => 'Время выполнения теста истекло.'], 422);
+        }
+
         $data = $request->validate([
             'answers' => ['required', 'array', 'max:200'],
             'answers.*' => ['array'],
@@ -176,13 +186,28 @@ class TestController extends Controller
 
         abort_if($items->isEmpty(), 422, 'В этом тесте нет активных заданий.');
 
+        $limitMinutes = (int) ($attempt->test->time_limit_min ?? 0);
+        $expired = $limitMinutes > 0
+            && $attempt->started_at !== null
+            && now()->gt($attempt->started_at->copy()->addMinutes($limitMinutes)->addSeconds(30));
+
+        $submitted = $expired
+            ? (is_array($attempt->draft) ? $attempt->draft : [])
+            : $data['answers'];
+
         $answers = [];
 
         foreach ($items as $item) {
-            $response = $data['answers'][$item->id] ?? null;
+            $response = $submitted[$item->id] ?? null;
             if (is_array($response)) {
                 $answers[$item->id] = $response;
             }
+        }
+
+        if (! $expired && ! $this->hasMeaningfulAnswer($answers)) {
+            return response()->json([
+                'message' => 'Ответьте хотя бы на одно задание, чтобы завершить диагностику.',
+            ], 422);
         }
 
         abort_if(strlen((string) json_encode($answers)) > 200000, 422, 'Ответы слишком большие.');
@@ -384,6 +409,26 @@ class TestController extends Controller
             'colors' => $colors,
             'series' => $series,
         ]);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $answers
+     */
+    private function hasMeaningfulAnswer(array $answers): bool
+    {
+        foreach ($answers as $response) {
+            foreach ($response as $key => $value) {
+                if ($key === 'ms') {
+                    continue;
+                }
+
+                if (is_array($value) ? $value !== [] : ($value !== null && $value !== '' && $value !== false)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

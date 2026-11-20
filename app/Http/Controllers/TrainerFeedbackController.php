@@ -12,6 +12,7 @@ class TrainerFeedbackController extends Controller
     public function store(Request $request, TrainerAttempt $attempt): RedirectResponse
     {
         abort_unless($attempt->user_id === $request->user()->id, 403);
+        abort_unless($attempt->status === 'completed', 422, 'Сначала завершите тренажёр.');
 
         $data = $request->validate([
             'rating' => ['required', 'integer', 'between:1,5'],

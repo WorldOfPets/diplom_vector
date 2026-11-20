@@ -35,6 +35,16 @@ class ContentProgressService
         };
     }
 
+    public static function requiredUnits(int $total): int
+    {
+        return (int) ceil($total * self::CERTIFICATE_THRESHOLD / 100);
+    }
+
+    public static function isCertificateReady(int $done, int $total): bool
+    {
+        return $total > 0 && $done >= self::requiredUnits($total);
+    }
+
     /**
      * @return array{
      *     categories: array<int, array{key: string, label: string, hint: string, done: int, total: int, percent: float, color: string, icon: string}>,
@@ -54,14 +64,14 @@ class ContentProgressService
             ->whereHas('module', fn ($query) => $query->where('is_published', true))
             ->pluck('id');
 
-        $theoryArticles = TheoryArticle::query()->published()->get(['id', 'video_url', 'video_path']);
+        $theoryArticles = TheoryArticle::query()->published()->get(['id', 'video_url', 'video_path', 'slides', 'source_url', 'task']);
         $theoryIds = $theoryArticles->pluck('id');
         $theoryProgress = TheoryProgress::query()
             ->where('user_id', $user->id)
             ->whereIn('theory_article_id', $theoryIds)
             ->get()
             ->keyBy('theory_article_id');
-        $theoryTotal = $theoryArticles->count() * 3;
+        $theoryTotal = $theoryArticles->sum(fn (TheoryArticle $article): int => $article->stepTotal());
         $testIds = Test::query()->where('is_active', true)->pluck('id');
         $shortIds = Short::query()->published()->pluck('id');
 
@@ -122,8 +132,8 @@ class ContentProgressService
 
         $done = array_sum(array_column($categories, 'done'));
         $total = array_sum(array_column($categories, 'total'));
-        $percent = $total > 0 ? round($done / $total * 100, 1) : 0.0;
-        $needed = (int) ceil($total * self::CERTIFICATE_THRESHOLD / 100);
+        $percent = $total > 0 ? floor($done / $total * 1000) / 10 : 0.0;
+        $needed = self::requiredUnits($total);
 
         return [
             'categories' => $categories,
@@ -132,7 +142,7 @@ class ContentProgressService
             'percent' => $percent,
             'remaining' => max(0, $needed - $done),
             'certificate_threshold' => self::CERTIFICATE_THRESHOLD,
-            'certificate_ready' => $percent >= self::CERTIFICATE_THRESHOLD,
+            'certificate_ready' => self::isCertificateReady($done, $total),
         ];
     }
 
@@ -145,11 +155,11 @@ class ContentProgressService
 
         $this->snapshot($user, 'initial', $summary);
 
-        if ($summary['percent'] >= 50) {
+        if ($this->reached($summary, 50)) {
             $this->snapshot($user, 'fifty', $summary);
         }
 
-        if ($summary['percent'] >= 90) {
+        if ($this->reached($summary, 90)) {
             $this->snapshot($user, 'ninety', $summary);
         }
 
@@ -193,7 +203,7 @@ class ContentProgressService
 
         $summary = $this->summary($user);
 
-        if ($summary['percent'] < self::CERTIFICATE_THRESHOLD) {
+        if (! $summary['certificate_ready']) {
             return null;
         }
 
@@ -261,5 +271,13 @@ class ContentProgressService
     private function certificateNumber(User $user): string
     {
         return 'VK-'.now()->format('Y').'-'.str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * @param  array{done: int, total: int}  $summary
+     */
+    private function reached(array $summary, int $threshold): bool
+    {
+        return $summary['total'] > 0 && $summary['done'] * 100 >= $summary['total'] * $threshold;
     }
 }

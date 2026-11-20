@@ -706,6 +706,7 @@ document.addEventListener('alpine:init', () => {
 
         init() {
             this.startTimer();
+            this.preloadNext();
         },
 
         destroy() {
@@ -777,6 +778,16 @@ document.addEventListener('alpine:init', () => {
 
             this.index = next;
             this.startTimer();
+            this.preloadNext();
+        },
+
+        preloadNext() {
+            const next = this.slides[this.index + 1];
+
+            if (next) {
+                const image = new Image();
+                image.src = next;
+            }
         },
 
         async markViewed() {
@@ -2418,12 +2429,13 @@ document.addEventListener('alpine:init', () => {
         error: null,
         confirmSubmit: false,
         navigatorOpen: false,
-        startedAt: Date.now(),
+        startedAt: Date.now() - (Number(options.elapsedSeconds ?? 0) * 1000),
         elapsed: 0,
         itemStartedAt: Date.now(),
         timer: null,
         autosaveTimer: null,
         keyHandler: null,
+        autoSubmitted: false,
 
         init() {
             const initial = options.initial ?? {};
@@ -2439,6 +2451,11 @@ document.addEventListener('alpine:init', () => {
             this.answers = answers;
             this.timer = setInterval(() => {
                 this.elapsed = Math.floor((Date.now() - this.startedAt) / 1000);
+
+                if (this.timeLimit && !this.autoSubmitted && this.elapsed >= this.timeLimit * 60) {
+                    this.autoSubmitted = true;
+                    this.submit();
+                }
             }, 1000);
             this.autosaveTimer = setInterval(() => this.saveDraft(), 12000);
             this.keyHandler = (event) => this.handleKey(event);

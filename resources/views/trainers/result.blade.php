@@ -230,9 +230,9 @@
 
                     <div class="flex flex-wrap items-center gap-1" role="radiogroup" aria-label="Оценка упражнения">
                         @for($i = 1; $i <= 5; $i++)
-                            <label class="cursor-pointer p-0.5">
+                            <label class="cursor-pointer p-1.5">
                                 <input type="radio" name="rating" value="{{ $i }}" class="peer sr-only" x-model.number="rating" @checked((int) old('rating', $trainerFeedback?->rating ?? 0) === $i) required>
-                                <span class="text-[30px] leading-none transition" :class="rating >= {{ $i }} ? 'text-amber' : 'text-line hover:text-amber/60'">★</span>
+                                <span class="text-[32px] leading-none transition" :class="rating >= {{ $i }} ? 'text-amber' : 'text-line hover:text-amber/60'">★</span>
                             </label>
                         @endfor
                         <span class="ml-2 text-xs font-bold text-muted" x-text="rating ? rating + ' из 5' : 'Выберите оценку'"></span>

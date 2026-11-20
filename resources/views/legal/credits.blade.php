@@ -9,8 +9,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="{{ $theme === 'dark' ? '#0b0e14' : '#f7f5f0' }}">
-    <title>Фотографии и лицензии — Вектор</title>
-    <meta name="description" content="Авторы и источники фотографий, использованных в тренажёре «Вектор». Лицензия Unsplash.">
+    <x-seo
+        title="Фотографии и лицензии"
+        description="Авторы и источники фотографий, использованных в тренажёре «Вектор». Лицензия Unsplash."
+        robots="index,follow"
+    />
     @include('partials.pwa-head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

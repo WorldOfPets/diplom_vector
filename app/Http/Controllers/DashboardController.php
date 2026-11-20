@@ -88,8 +88,6 @@ class DashboardController extends Controller
             'featuredShort' => $featuredShort,
             'contentProgress' => $contentProgress,
             'streak' => $this->diaryStreak($user->id),
-            'completedCount' => $completedTrainerIds->count(),
-            'totalTrainers' => $modules->sum(fn (Module $module): int => $module->trainers->count()),
         ]);
     }
 

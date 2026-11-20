@@ -224,7 +224,7 @@
                             <form method="POST" action="{{ route('diary.destroy', $entry) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="grid h-7 w-7 place-items-center rounded-lg text-muted transition hover:bg-rose/10 hover:text-rose" title="Удалить">
+                                <button type="submit" class="grid h-9 w-9 place-items-center rounded-lg text-muted transition hover:bg-rose/10 hover:text-rose" title="Удалить">
                                     <x-icon name="trash" class="h-3.5 w-3.5" />
                                 </button>
                             </form>

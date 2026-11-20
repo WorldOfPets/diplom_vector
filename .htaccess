@@ -11,3 +11,10 @@ Options -Indexes
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
+
+# Defense in depth: never serve databases, logs or backups even if mod_rewrite is off.
+<FilesMatch "\.(sqlite|sqlite3|db|log|bak|old|tar|gz|zip)$">
+    Require all denied
+</FilesMatch>
+
+RedirectMatch 404 ^/(database|storage|tests|content|vendor)/

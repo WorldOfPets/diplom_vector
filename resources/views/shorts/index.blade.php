@@ -95,7 +95,7 @@
                                         @if($short->has_audio)
                                             <button
                                                 type="button"
-                                                class="grid h-8 w-8 place-items-center rounded-full border border-white/15 bg-black/25 text-white/80 backdrop-blur transition hover:bg-white/15"
+                                                class="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/25 text-white/80 backdrop-blur transition hover:bg-white/15"
                                                 @click.stop="toggleMute"
                                                 :aria-label="muted ? 'Включить звук' : 'Выключить звук'"
                                                 :aria-pressed="!muted"
@@ -128,7 +128,7 @@
                                         </span>
                                         <span class="text-[10px] font-extrabold drop-shadow" x-text="likes"></span>
                                     </button>
-                                    <a href="{{ route('credits') }}" class="text-[9px] font-semibold text-white/60 underline decoration-white/30 underline-offset-2">credits</a>
+                                    <a href="{{ route('credits') }}" class="inline-block py-1 text-[10px] font-semibold text-white/70 underline decoration-white/30 underline-offset-2">credits</a>
                                 </div>
 
                                 <div class="pointer-events-none absolute inset-x-0 bottom-0 p-5 pr-16 sm:pr-20">

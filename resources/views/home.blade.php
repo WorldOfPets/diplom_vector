@@ -9,6 +9,46 @@
         'amber' => ['soft' => 'bg-amber-soft', 'text' => 'text-amber-ink', 'dot' => 'bg-amber', 'line' => 'border-amber/20'],
     ];
     $heroPhoto = \App\Support\PhotoLibrary::get('media/photos/hero-campus.jpg');
+    $siteUrl = url('/');
+    $siteDescription = '«Вектор» — цифровой тренажёр эмоционального интеллекта и мотивации для студентов СПО: диагностика ЭИ, '.$trainerCount.' интерактивных упражнений, 18 презентаций теории, дневник эмоций и сертификат.';
+    $structuredData = [
+        '@context' => 'https://schema.org',
+        '@graph' => [
+            [
+                '@type' => 'EducationalOrganization',
+                '@id' => $siteUrl.'#organization',
+                'name' => 'Вектор',
+                'url' => $siteUrl,
+                'logo' => asset('app-icons/icon-512.png'),
+                'description' => 'Цифровой тренажёр эмоционального интеллекта и мотивации для студентов среднего профессионального образования.',
+                'address' => [
+                    '@type' => 'PostalAddress',
+                    'addressCountry' => 'RU',
+                ],
+            ],
+            [
+                '@type' => 'WebSite',
+                '@id' => $siteUrl.'#website',
+                'url' => $siteUrl,
+                'name' => 'Вектор',
+                'inLanguage' => 'ru-RU',
+                'publisher' => ['@id' => $siteUrl.'#organization'],
+            ],
+            [
+                '@type' => 'Course',
+                'name' => 'Эмоциональный интеллект и мотивация',
+                'description' => 'Практический курс для студентов СПО: понимание эмоций, саморегуляция, эмпатия, коммуникация и мотивация.',
+                'provider' => ['@id' => $siteUrl.'#organization'],
+                'inLanguage' => 'ru-RU',
+                'isAccessibleForFree' => true,
+                'hasCourseInstance' => [
+                    '@type' => 'CourseInstance',
+                    'courseMode' => 'online',
+                    'courseWorkload' => 'PT20H',
+                ],
+            ],
+        ],
+    ];
 @endphp
 <!DOCTYPE html>
 <html lang="ru" class="h-full scroll-smooth" data-theme="{{ $theme }}" data-tone="{{ $tone }}">
@@ -16,8 +56,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="{{ $theme === 'dark' ? '#0b0e14' : '#f7f5f0' }}">
-    <title>Вектор — тренажёр мотивации и эмоционального интеллекта</title>
-    <meta name="description" content="Цифровой тренажёр для студентов СПО: диагностика эмоционального интеллекта, {{ $trainerCount }} интерактивных упражнений и личная динамика мотивации.">
+    <x-seo
+        title="Тренажёр эмоционального интеллекта для студентов СПО"
+        :description="$siteDescription"
+        image="media/photos/hero-campus.jpg"
+        :image-width="1778"
+        :image-height="1000"
+        robots="index,follow"
+        :json-ld="$structuredData"
+    />
     @include('partials.pwa-head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

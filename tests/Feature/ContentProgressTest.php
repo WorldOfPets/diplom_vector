@@ -58,6 +58,12 @@ class ContentProgressTest extends TestCase
             'slug' => 'what-is-ei',
             'title' => 'Что такое ЭИ',
             'body' => 'Текст',
+            'source_url' => 'https://example.com/source',
+            'task' => [
+                'text' => 'Эмоция — это {{1}}.',
+                'answers' => ['1' => 'сигнал'],
+                'options' => ['сигнал', 'приговор'],
+            ],
             'sort' => 1,
             'is_published' => true,
         ]);

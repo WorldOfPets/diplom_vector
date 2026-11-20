@@ -67,6 +67,17 @@ class TheorySlidesTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_read_endpoint_does_not_bypass_slide_viewing(): void
+    {
+        [$user, $article] = $this->makeArticle();
+
+        $this->actingAs($user)
+            ->postJson(route('theory.read', $article))
+            ->assertStatus(422);
+
+        $this->assertNull(TheoryProgress::query()->first()?->read_at);
+    }
+
     /**
      * @return array{0: User, 1: TheoryArticle}
      */

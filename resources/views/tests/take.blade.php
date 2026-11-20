@@ -26,7 +26,8 @@
             autosaveUrl: '{{ route('tests.autosave', $attempt) }}',
             submitUrl: '{{ route('tests.submit', $attempt) }}',
             csrf: '{{ csrf_token() }}',
-            timeLimit: {{ $timeLimit ?? 'null' }}
+            timeLimit: {{ $timeLimit ?? 'null' }},
+            elapsedSeconds: {{ $attempt->started_at ? max(0, (int) $attempt->started_at->diffInSeconds(now())) : 0 }}
          })">
 
         <div class="flex flex-wrap items-center justify-between gap-2">

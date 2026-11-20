@@ -83,9 +83,9 @@ class ProfileController extends Controller
             'attemptTrend' => $attemptTrend->values(),
             'trainerAttempts' => $trainerAttempts,
             'trainerStats' => [
-                'completed' => $trainerAttempts->count(),
+                'completed' => $trainerAttempts->unique('trainer_id')->count(),
                 'average' => $trainerAttempts->isEmpty() ? 0 : round($trainerAttempts->avg('percent')),
-                'passed' => $trainerAttempts->where('passed', true)->count(),
+                'passed' => $trainerAttempts->where('passed', true)->unique('trainer_id')->count(),
             ],
             'diaryStats' => [
                 'entries' => DiaryEntry::query()->where('user_id', $user->id)->count(),

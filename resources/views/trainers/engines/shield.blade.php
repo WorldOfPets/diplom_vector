@@ -29,7 +29,7 @@
                     @foreach($sectors as $sector)
                         <div class="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/15 p-2 text-center">
                             <span class="text-lg" x-text="response.symbols?.['{{ $sector['key'] }}'] || '✦'"></span>
-                            <span class="text-[9px] font-bold uppercase tracking-[0.08em] text-white/70">{{ $sector['label'] }}</span>
+                            <span class="text-[9px] font-bold uppercase tracking-[0.08em] text-white/90">{{ $sector['label'] }}</span>
                             <span class="line-clamp-2 text-[10px] font-semibold text-white/90" x-text="response.sectors?.['{{ $sector['key'] }}'] || '—'"></span>
                         </div>
                     @endforeach

@@ -25,7 +25,7 @@ class TheoryController extends Controller
             ->get()
             ->keyBy('theory_article_id');
 
-        $stepsTotal = $articles->count() * 3;
+        $stepsTotal = $articles->sum(fn (TheoryArticle $article): int => $article->stepTotal());
         $stepsDone = $articles->sum(fn (TheoryArticle $article): int => $article->completedSteps($progress->get($article->id)));
 
         return view('theory.index', [
@@ -123,6 +123,7 @@ class TheoryController extends Controller
     public function markRead(Request $request, TheoryArticle $article): JsonResponse
     {
         abort_unless($article->is_published, 404);
+        abort_if($article->hasSlides(), 422, 'Первый шаг этого материала — просмотр презентации.');
 
         TheoryProgress::query()->updateOrCreate(
             [

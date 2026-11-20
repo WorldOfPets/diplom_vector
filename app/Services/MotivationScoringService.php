@@ -33,10 +33,11 @@ class MotivationScoringService
             $value = max(1, min(5, $value));
             $reverse = (bool) ($item->key_data['reverse'] ?? $item->config['reverse'] ?? false);
             $normalized = $reverse ? (5 - $value) / 4 : ($value - 1) / 4;
+            $weight = max(0.1, (float) ($item->weight ?? 1));
 
             $subscale = $item->config['subscale'] ?? 'motivation';
-            $subscales[$subscale][] = $normalized;
-            $all[] = $normalized;
+            $subscales[$subscale][] = ['value' => $normalized, 'weight' => $weight];
+            $all[] = ['value' => $normalized, 'weight' => $weight];
 
             $responses[$item->id] = [
                 'response' => $response,
@@ -46,14 +47,20 @@ class MotivationScoringService
             ];
         }
 
+        $weightedMean = static function (array $values): float {
+            $weight = array_sum(array_column($values, 'weight'));
+
+            return $weight > 0 ? array_sum(array_map(fn (array $v): float => $v['value'] * $v['weight'], $values)) / $weight : 0.0;
+        };
+
         $scores = [];
         foreach ($subscales as $subscale => $values) {
-            $scores[$subscale] = round(array_sum($values) / count($values) * 100, 1);
+            $scores[$subscale] = round($weightedMean($values) * 100, 1);
         }
 
         $selfDetermined = array_merge($subscales['internal'] ?? [], $subscales['professional'] ?? []);
         $overallBase = $selfDetermined !== [] ? $selfDetermined : $all;
-        $overall = $overallBase !== [] ? round(array_sum($overallBase) / count($overallBase) * 100, 1) : 0.0;
+        $overall = $overallBase !== [] ? round($weightedMean($overallBase) * 100, 1) : 0.0;
 
         return [
             'responses' => $responses,

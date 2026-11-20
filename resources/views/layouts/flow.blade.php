@@ -9,7 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="{{ $theme === 'dark' ? '#0b0e14' : '#f7f5f0' }}">
-    <title>@yield('title', 'Вектор') — Вектор</title>
+    @php $pageTitle = trim($__env->yieldContent('title')); @endphp
+    <x-seo :title="$pageTitle !== '' ? $pageTitle : null" robots="noindex,nofollow" />
     @include('partials.pwa-head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')

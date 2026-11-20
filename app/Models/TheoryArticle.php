@@ -112,8 +112,15 @@ class TheoryArticle extends Model
         }
 
         return (int) $this->firstStepCompleted($progress)
-            + (int) ($progress->source_opened_at !== null)
-            + (int) ($progress->task_completed_at !== null);
+            + (int) (filled($this->source_url) && $progress->source_opened_at !== null)
+            + (int) ($this->hasTask() && $progress->task_completed_at !== null);
+    }
+
+    public function stepTotal(): int
+    {
+        return 1
+            + (int) filled($this->source_url)
+            + (int) $this->hasTask();
     }
 
     public function localVideoPath(): ?string

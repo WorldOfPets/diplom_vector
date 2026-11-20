@@ -82,6 +82,7 @@ class TheoryController extends Controller
             'task_options' => ['nullable', 'string', 'max:3000'],
             'remove_task' => ['nullable', 'boolean'],
             'cover_path' => ['nullable', 'string', 'max:255'],
+            'slides_text' => ['nullable', 'string', 'max:20000'],
             'video_url' => ['nullable', 'url', 'max:255'],
             'video_file' => ['nullable', 'file', 'mimetypes:video/mp4,video/webm', 'mimes:mp4,webm', 'max:204800'],
             'remove_video' => ['nullable', 'boolean'],
@@ -115,6 +116,7 @@ class TheoryController extends Controller
             'excerpt' => $data['excerpt'] ?? null,
             'body' => $data['body'] ?? null,
             'task' => $this->taskFromInput($request, $data),
+            'slides' => $this->slidesFromInput($data['slides_text'] ?? null),
             'cover_path' => $data['cover_path'] ?? null,
             'video_url' => $data['video_url'] ?? null,
             'source_url' => $data['source_url'] ?? null,
@@ -167,6 +169,38 @@ class TheoryController extends Controller
     }
 
     /**
+     * @return list<string>|null
+     */
+    private function slidesFromInput(?string $input): ?array
+    {
+        if (blank($input)) {
+            return null;
+        }
+
+        $slides = [];
+
+        foreach (preg_split('/\r\n|\r|\n/', $input) as $line) {
+            $path = trim($line);
+
+            if ($path === '') {
+                continue;
+            }
+
+            if (preg_match('~^media/slides/[a-z0-9-]+/slide-\d{2}\.jpg$~', $path) !== 1) {
+                continue;
+            }
+
+            if (count($slides) >= 80) {
+                break;
+            }
+
+            $slides[] = $path;
+        }
+
+        return $slides === [] ? null : $slides;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -192,7 +226,12 @@ class TheoryController extends Controller
 
         $base = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME), '-', 'ru');
         $base = $base !== '' ? Str::limit($base, 100, '') : 'theory-video';
-        $extension = strtolower($file->getClientOriginalExtension() ?: 'mp4');
+        $extension = strtolower($file->guessExtension() ?: 'mp4');
+
+        if (! in_array($extension, ['mp4', 'webm'], true)) {
+            $extension = 'mp4';
+        }
+
         $name = $base.'-'.Str::lower(Str::random(8)).'.'.$extension;
 
         $file->move($directory, $name);
@@ -208,7 +247,12 @@ class TheoryController extends Controller
             return;
         }
 
-        $absolute = public_path($path);
+        $root = realpath(public_path('media/theory'));
+        $absolute = realpath(public_path($path));
+
+        if ($root === false || $absolute === false || ! str_starts_with($absolute, $root.DIRECTORY_SEPARATOR)) {
+            return;
+        }
 
         if (is_file($absolute)) {
             unlink($absolute);

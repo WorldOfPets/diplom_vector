@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ExportController;
+use App\Http\Controllers\Admin\FeedbackController;
 use App\Http\Controllers\Admin\GroupController;
 use App\Http\Controllers\Admin\TestController as AdminTestController;
 use App\Http\Controllers\Admin\TheoryController as AdminTheoryController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\ReflectionController;
 use App\Http\Controllers\ShortController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\TheoryController;
 use App\Http\Controllers\TrainerController;
@@ -30,18 +32,21 @@ use App\Http\Controllers\TrainerFeedbackController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/credits', 'legal.credits')->name('credits');
 
-Route::post('/preferences', [PreferenceController::class, 'store'])->name('preferences.store');
+Route::post('/preferences', [PreferenceController::class, 'store'])->middleware('throttle:30,1')->name('preferences.store');
 
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::get('/auth/yandex', [YandexController::class, 'redirect'])->name('auth.yandex');
 Route::get('/auth/yandex/callback', [YandexController::class, 'callback'])->name('auth.yandex.callback');
 Route::post('/logout', [YandexController::class, 'logout'])->middleware('auth')->name('logout');
 
-Route::get('/dev-login', [DevLoginController::class, 'show'])->name('dev.login');
-Route::post('/dev-login', [DevLoginController::class, 'store'])->name('dev.login.store');
+if (app()->isLocal() && config('app.dev_login')) {
+    Route::get('/dev-login', [DevLoginController::class, 'show'])->name('dev.login');
+    Route::post('/dev-login', [DevLoginController::class, 'store'])->name('dev.login.store');
+}
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
@@ -52,15 +57,15 @@ Route::middleware(['auth', 'onboarded'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/progress', [ProgressController::class, 'index'])->name('progress.index');
-    Route::post('/progress/feedback', [ProgressController::class, 'feedback'])->name('progress.feedback');
+    Route::post('/progress/feedback', [ProgressController::class, 'feedback'])->middleware('throttle:10,1')->name('progress.feedback');
     Route::get('/certificate', [ProgressController::class, 'certificate'])->name('certificate.show');
 
     Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
     Route::get('/modules/{module:slug}', [ModuleController::class, 'show'])->name('modules.show');
 
     Route::get('/shorts', [ShortController::class, 'index'])->name('shorts.index');
-    Route::post('/shorts/{short:slug}/like', [ShortController::class, 'like'])->name('shorts.like');
-    Route::post('/shorts/{short:slug}/view', [ShortController::class, 'view'])->name('shorts.view');
+    Route::post('/shorts/{short:slug}/like', [ShortController::class, 'like'])->middleware('throttle:120,1')->name('shorts.like');
+    Route::post('/shorts/{short:slug}/view', [ShortController::class, 'view'])->middleware('throttle:120,1')->name('shorts.view');
 
     Route::get('/trainers/{trainer:slug}', [TrainerController::class, 'show'])->name('trainers.show');
     Route::post('/trainers/{trainer:slug}', [TrainerController::class, 'submit'])->middleware('throttle:30,1')->name('trainers.submit');
@@ -78,25 +83,25 @@ Route::middleware(['auth', 'onboarded'])->group(function (): void {
     Route::get('/test-results/{attempt}', [TestController::class, 'result'])->name('tests.result');
 
     Route::get('/diary', [DiaryController::class, 'index'])->name('diary.index');
-    Route::post('/diary', [DiaryController::class, 'store'])->name('diary.store');
-    Route::delete('/diary/{entry}', [DiaryController::class, 'destroy'])->name('diary.destroy');
+    Route::post('/diary', [DiaryController::class, 'store'])->middleware('throttle:60,1')->name('diary.store');
+    Route::delete('/diary/{entry}', [DiaryController::class, 'destroy'])->middleware('throttle:60,1')->name('diary.destroy');
 
     Route::get('/theory', [TheoryController::class, 'index'])->name('theory.index');
     Route::get('/theory/{article:slug}', [TheoryController::class, 'show'])->name('theory.show');
-    Route::get('/theory/{article:slug}/source', [TheoryController::class, 'openSource'])->name('theory.source');
-    Route::post('/theory/{article:slug}/read', [TheoryController::class, 'markRead'])->name('theory.read');
-    Route::post('/theory/{article:slug}/video', [TheoryController::class, 'markVideo'])->name('theory.video');
+    Route::get('/theory/{article:slug}/source', [TheoryController::class, 'openSource'])->middleware('throttle:60,1')->name('theory.source');
+    Route::post('/theory/{article:slug}/read', [TheoryController::class, 'markRead'])->middleware('throttle:30,1')->name('theory.read');
+    Route::post('/theory/{article:slug}/video', [TheoryController::class, 'markVideo'])->middleware('throttle:30,1')->name('theory.video');
     Route::post('/theory/{article:slug}/slides', [TheoryController::class, 'markSlide'])->middleware('throttle:60,1')->name('theory.slides');
-    Route::post('/theory/{article:slug}/task', [TheoryController::class, 'completeTask'])->name('theory.task');
+    Route::post('/theory/{article:slug}/task', [TheoryController::class, 'completeTask'])->middleware('throttle:30,1')->name('theory.task');
 
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile', [ProfileController::class, 'update'])->middleware('throttle:20,1')->name('profile.update');
 
     Route::get('/camera', [CameraController::class, 'show'])->name('camera.show');
-    Route::post('/camera/consent', [CameraController::class, 'consent'])->name('camera.consent');
-    Route::delete('/camera/consent', [CameraController::class, 'revokeConsent'])->name('camera.consent.revoke');
-    Route::post('/camera/progress', [CameraController::class, 'progress'])->name('camera.progress');
-    Route::post('/camera/submit', [CameraController::class, 'submit'])->name('camera.submit');
+    Route::post('/camera/consent', [CameraController::class, 'consent'])->middleware('throttle:20,1')->name('camera.consent');
+    Route::delete('/camera/consent', [CameraController::class, 'revokeConsent'])->middleware('throttle:20,1')->name('camera.consent.revoke');
+    Route::post('/camera/progress', [CameraController::class, 'progress'])->middleware('throttle:60,1')->name('camera.progress');
+    Route::post('/camera/submit', [CameraController::class, 'submit'])->middleware('throttle:30,1')->name('camera.submit');
 });
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function (): void {
@@ -137,9 +142,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/theory/{article}/toggle', [AdminTheoryController::class, 'toggle'])->name('theory.toggle');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+    Route::get('/feedback', [FeedbackController::class, 'index'])->name('feedback.index');
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
 
     Route::get('/export/users', [ExportController::class, 'users'])->name('export.users');
     Route::get('/export/trainer-attempts', [ExportController::class, 'trainerAttempts'])->name('export.trainer-attempts');
     Route::get('/export/test-attempts', [ExportController::class, 'testAttempts'])->name('export.test-attempts');
+    Route::get('/export/progress', [ExportController::class, 'progress'])->name('export.progress');
+    Route::get('/export/feedback', [ExportController::class, 'feedback'])->name('export.feedback');
+    Route::get('/export/certificates', [ExportController::class, 'certificates'])->name('export.certificates');
+    Route::get('/export/groups', [ExportController::class, 'groups'])->name('export.groups');
+    Route::get('/export/theory', [ExportController::class, 'theory'])->name('export.theory');
+    Route::get('/export/shorts', [ExportController::class, 'shorts'])->name('export.shorts');
 });

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DiaryEntry;
 use App\Models\Emotion;
+use App\Services\ContentProgressService;
 use App\Support\RussianTextGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -113,6 +114,8 @@ class DiaryController extends Controller
             ],
         );
 
+        app(ContentProgressService::class)->sync($request->user());
+
         return redirect()
             ->route('diary.index')
             ->with('status', 'Запись сохранена.');
@@ -123,6 +126,8 @@ class DiaryController extends Controller
         abort_unless($entry->user_id === $request->user()->id, 403);
 
         $entry->delete();
+
+        app(ContentProgressService::class)->sync($request->user());
 
         return redirect()->route('diary.index')->with('status', 'Запись удалена.');
     }

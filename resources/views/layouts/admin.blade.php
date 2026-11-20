@@ -8,6 +8,7 @@
         ['route' => 'admin.trainers.index', 'pattern' => 'admin.trainers.*', 'label' => 'Тренажёры', 'icon' => 'sparkles'],
         ['route' => 'admin.theory.index', 'pattern' => 'admin.theory.*', 'label' => 'Теория', 'icon' => 'book'],
         ['route' => 'admin.analytics.index', 'pattern' => 'admin.analytics.*', 'label' => 'Аналитика', 'icon' => 'target'],
+        ['route' => 'admin.feedback.index', 'pattern' => 'admin.feedback.*', 'label' => 'Качество', 'icon' => 'star'],
         ['route' => 'admin.audit.index', 'pattern' => 'admin.audit.*', 'label' => 'Аудит', 'icon' => 'shield'],
     ];
 @endphp
@@ -73,12 +74,12 @@
             <span class="grid h-8 w-8 place-items-center rounded-xl bg-brand text-xs font-extrabold">V</span>
             <span class="text-sm font-extrabold">Админка</span>
         </a>
-        <a href="{{ route('dashboard') }}" class="text-xs font-bold text-white/60">В приложение</a>
+        <a href="{{ route('dashboard') }}" class="py-1 text-xs font-bold text-white/60">В приложение</a>
     </div>
     <nav class="no-scrollbar mt-3 flex gap-1.5 overflow-x-auto pb-1">
         @foreach($adminNav as $item)
             @php $active = request()->routeIs($item['pattern']); @endphp
-            <a href="{{ route($item['route']) }}" class="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold {{ $active ? 'bg-white text-ink' : 'bg-white/10 text-white/60' }}">{{ $item['label'] }}</a>
+            <a href="{{ route($item['route']) }}" class="shrink-0 rounded-full px-3.5 py-2.5 text-[11px] font-bold {{ $active ? 'bg-white text-ink' : 'bg-white/10 text-white/60' }}">{{ $item['label'] }}</a>
         @endforeach
     </nav>
 </header>

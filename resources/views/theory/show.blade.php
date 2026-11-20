@@ -77,9 +77,11 @@
                     url: '{{ route('theory.slides', $article) }}',
                     csrf: '{{ csrf_token() }}'
                 })"
+                @keydown.arrow-right.window.prevent="go(1)"
+                @keydown.arrow-left.window.prevent="go(-1)"
             >
                 <div class="relative aspect-video bg-black">
-                    <img :src="current" :alt="`Слайд ${index + 1} из ${total}`" class="h-full w-full object-contain">
+                    <img :src="current" :alt="`Слайд ${index + 1} из ${total}`" class="h-full w-full object-contain" loading="eager">
                 </div>
                 <div class="border-t border-white/10 px-4 py-3">
                     <div class="flex items-center justify-between gap-3">

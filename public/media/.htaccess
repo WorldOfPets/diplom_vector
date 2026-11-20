@@ -1,0 +1,6 @@
+# Запрет исполнения любых скриптов в загруженных медиа.
+<FilesMatch "\.(php|pht|phtml|phar|php[0-9]*|cgi|pl|py|sh|shtml)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes

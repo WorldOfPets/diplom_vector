@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\CameraProgress;
 use App\Models\Certificate;
 use App\Models\Feedback;
 use App\Models\Group;
@@ -115,6 +116,7 @@ class UserController extends Controller
             TestAttempt::query()->where('user_id', $user->id)->delete();
             ShortView::query()->where('user_id', $user->id)->delete();
             TheoryProgress::query()->where('user_id', $user->id)->delete();
+            CameraProgress::query()->where('user_id', $user->id)->delete();
             ProgressSnapshot::query()->where('user_id', $user->id)->delete();
             Reflection::query()->where('user_id', $user->id)->delete();
             Feedback::query()->where('user_id', $user->id)->delete();

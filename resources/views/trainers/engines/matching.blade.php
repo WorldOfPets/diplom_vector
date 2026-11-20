@@ -25,9 +25,9 @@
                     : (pairs[@js($item['id'])] ? 'border-mint/30 bg-mint-soft/20' : 'border-line bg-surface')">
                 <button type="button"
                         @click="chooseLeft(@js($item['id']))"
-                        class="flex w-full items-start gap-3 text-left"
+                        class="flex w-full items-start gap-3 py-1 text-left"
                         :aria-pressed="active === @js($item['id'])"
-                        aria-label="Выбрать описание: {{ $item['label'] }}">
+                        aria-label="Выбрать описание {{ $loop->iteration }}: {{ $item['label'] }}">
                     <span class="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-paper text-[11px] font-extrabold text-ink-soft">{{ $loop->iteration }}</span>
                     <span class="flex-1 text-sm font-semibold leading-snug">{{ $item['label'] }}</span>
                     <x-icon name="chevron-right" class="mt-0.5 h-4 w-4 shrink-0 text-muted" />

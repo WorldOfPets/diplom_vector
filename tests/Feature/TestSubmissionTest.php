@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\TestItem;
+use App\Models\TestResponse;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -142,5 +143,92 @@ class TestSubmissionTest extends TestCase
 
         $this->assertSame(100.0, (float) $attempt->overall);
         $this->assertSame(100.0, (float) $attempt->scores['internal']);
+    }
+
+    public function test_empty_answer_payload_does_not_complete_the_attempt(): void
+    {
+        [$user, $test, $item] = $this->simpleTest();
+
+        $attempt = TestAttempt::query()->create([
+            'test_id' => $test->id,
+            'user_id' => $user->id,
+            'form' => 'A',
+            'status' => 'in_progress',
+            'started_at' => now(),
+        ]);
+
+        $this->actingAs($user)->postJson(route('tests.submit', $attempt), [
+            'answers' => [$item->id => []],
+        ])->assertStatus(422);
+
+        $this->assertSame('in_progress', $attempt->refresh()->status);
+    }
+
+    public function test_expired_attempt_is_scored_from_the_server_draft_not_late_answers(): void
+    {
+        [$user, $test, $item] = $this->simpleTest();
+
+        $attempt = TestAttempt::query()->create([
+            'test_id' => $test->id,
+            'user_id' => $user->id,
+            'form' => 'A',
+            'status' => 'in_progress',
+            'started_at' => now()->subMinutes(20),
+            'draft' => [$item->id => ['value' => 'o1']],
+        ]);
+
+        $this->actingAs($user)->postJson(route('tests.submit', $attempt), [
+            'answers' => [$item->id => ['value' => 'o2']],
+        ])->assertOk();
+
+        $attempt->refresh();
+
+        $this->assertSame('completed', $attempt->status);
+        $this->assertSame(0.0, (float) $attempt->overall);
+
+        $response = TestResponse::query()
+            ->where('test_attempt_id', $attempt->id)
+            ->where('test_item_id', $item->id)
+            ->firstOrFail();
+
+        $this->assertSame('o1', $response->response['value'] ?? null);
+        $this->assertSame(0.0, (float) $response->score);
+    }
+
+    /**
+     * @return array{0: User, 1: Test, 2: TestItem}
+     */
+    private function simpleTest(): array
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::Student,
+            'consent_at' => now(),
+            'consent_version' => '1.0',
+        ]);
+
+        $test = Test::query()->create([
+            'slug' => 'short-ei',
+            'title' => 'Короткий тест',
+            'kind' => 'ei_express',
+            'time_limit_min' => 15,
+            'is_active' => true,
+            'version' => 1,
+        ]);
+
+        $item = TestItem::query()->create([
+            'test_id' => $test->id,
+            'branch' => 'perception',
+            'type' => 'single',
+            'prompt' => 'Что чувствует человек?',
+            'config' => ['options' => [
+                ['id' => 'o1', 'label' => 'Спокойствие'],
+                ['id' => 'o2', 'label' => 'Тревога'],
+            ]],
+            'key_data' => ['weights' => ['o2' => 1.0]],
+            'sort' => 1,
+            'is_active' => true,
+        ]);
+
+        return [$user, $test, $item];
     }
 }

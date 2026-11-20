@@ -77,20 +77,28 @@
 
             <div class="card p-5">
                 <p class="text-sm font-bold">Медиа и ссылки</p>
+                <div class="mt-4">
+                    <label class="label" for="slides_text">Слайды презентации (пути, по одному на строку)</label>
+                    <textarea id="slides_text" name="slides_text" rows="6" class="textarea font-mono text-[11px]" placeholder="media/slides/deck-04/slide-01.jpg&#10;media/slides/deck-04/slide-02.jpg">{{ old('slides_text', implode("\n", $article?->slidesList() ?? [])) }}</textarea>
+                    <p class="mt-1 text-[10px] leading-relaxed text-muted">
+                        Если список заполнен, теория показывает презентацию вместо видео, а первый слайд становится обложкой. Каждый слайд засчитывается после 15 секунд просмотра; вся колода — 1 единица прогресса.
+                    </p>
+                </div>
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="label" for="cover_path">Обложка (путь)</label>
+                        <label class="label" for="cover_path">Резервная обложка (путь)</label>
                         <input id="cover_path" name="cover_path" value="{{ old('cover_path', $article?->cover_path) }}" class="input" placeholder="media/photos/lecture.jpg">
+                        <p class="mt-1 text-[10px] leading-relaxed text-muted">Используется, только если слайдов нет.</p>
                     </div>
                     <div>
-                        <label class="label" for="video_url">Rutube</label>
+                        <label class="label" for="video_url">Rutube (устарело)</label>
                         <input id="video_url" name="video_url" value="{{ old('video_url', $article?->video_url) }}" class="input" placeholder="https://rutube.ru/video/...">
-                        <p class="mt-1 text-[10px] leading-relaxed text-muted">Внешняя ссылка. Если загружено локальное видео, оно показывается первым.</p>
+                        <p class="mt-1 text-[10px] leading-relaxed text-muted">Показывается только у материалов без слайдов.</p>
                     </div>
                     <div class="sm:col-span-2">
                         <label class="label" for="video_file">Локальное видео (MP4 / WebM)</label>
                         <input id="video_file" type="file" name="video_file" accept="video/mp4,video/webm" class="input file:mr-3 file:rounded-full file:border-0 file:bg-paper-deep file:px-3 file:py-1.5 file:text-xs file:font-bold">
-                        <p class="mt-1 text-[10px] leading-relaxed text-muted">До 200 МБ. Просмотр засчитывается после 80% реального времени; перемотка не помогает.</p>
+                        <p class="mt-1 text-[10px] leading-relaxed text-muted">Устаревший формат. Для новых материалов загружайте слайды.</p>
                         @if($article?->video_path)
                             <div class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-paper/60 px-3 py-2">
                                 <span class="text-[11px] font-semibold text-ink-soft">Сейчас: {{ $article->video_path }}</span>

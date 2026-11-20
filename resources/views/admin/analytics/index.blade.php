@@ -10,8 +10,11 @@
             <p class="mt-1 text-sm text-muted">Сложность, дискриминация, среднее время и динамика по группам.</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.export.progress') }}" class="btn-secondary px-4 py-2.5 text-xs">Прогресс CSV</a>
             <a href="{{ route('admin.export.test-attempts') }}" class="btn-secondary px-4 py-2.5 text-xs">Результаты CSV</a>
             <a href="{{ route('admin.export.trainer-attempts') }}" class="btn-secondary px-4 py-2.5 text-xs">Тренажёры CSV</a>
+            <a href="{{ route('admin.export.groups') }}" class="btn-secondary px-4 py-2.5 text-xs">Группы CSV</a>
+            <a href="{{ route('admin.feedback.index') }}" class="btn-primary px-4 py-2.5 text-xs">Качество</a>
         </div>
     </div>
 
@@ -106,16 +109,16 @@
                             <td class="px-4 py-3 text-muted">{{ $row['item']->type }}</td>
                             <td class="max-w-md px-4 py-3 font-semibold text-ink-soft">{{ \Illuminate\Support\Str::limit($row['item']->prompt, 110) }}</td>
                             <td class="px-4 py-3 text-muted">{{ $row['n'] }}</td>
-                            <td class="px-4 py-3 font-bold {{ $row['p'] !== null && ($row['p'] < 20 || $row['p'] > 90) ? 'text-coral' : 'text-ink' }}">
+                            <td class="px-4 py-3 font-bold {{ $row['p'] !== null && ($row['p'] < 20 || $row['p'] > 90) ? 'text-coral-ink' : 'text-ink' }}">
                                 {{ $row['p'] !== null ? $row['p'].'%' : '—' }}
                             </td>
-                            <td class="px-4 py-3 font-bold {{ $row['r'] !== null && $row['r'] < 0.2 ? 'text-amber' : 'text-ink' }}">
+                            <td class="px-4 py-3 font-bold {{ $row['r'] !== null && $row['r'] < 0.2 ? 'text-amber-ink' : 'text-ink' }}">
                                 {{ $row['r'] ?? '—' }}
                             </td>
                             <td class="px-4 py-3 text-muted">{{ $row['avg_time'] ? round($row['avg_time'] / 1000, 1).' с' : '—' }}</td>
                             <td class="px-4 py-3">
                                 @if($row['flag'] || ($row['r'] !== null && $row['r'] < 0.2))
-                                    <span class="chip border-amber/20 bg-amber-soft text-amber">пересмотреть</span>
+                                    <span class="chip border-amber/20 bg-amber-soft text-amber-ink">пересмотреть</span>
                                 @else
                                     <span class="chip border-mint/20 bg-mint-soft text-emerald-700">ок</span>
                                 @endif

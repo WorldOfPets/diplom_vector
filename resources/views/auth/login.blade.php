@@ -1,6 +1,7 @@
 @extends('layouts.guest')
 
 @section('title', 'Вход')
+@section('robots', 'noindex,follow')
 
 @section('content')
     <div class="card overflow-hidden">

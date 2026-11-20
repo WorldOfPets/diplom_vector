@@ -72,7 +72,7 @@
                 x-data="theorySlides({
                     slides: @js($slides),
                     viewed: @js($slidesProgress),
-                    minSeconds: 10,
+                    minSeconds: 15,
                     completed: @js($slidesCompleted),
                     url: '{{ route('theory.slides', $article) }}',
                     csrf: '{{ csrf_token() }}'
@@ -96,7 +96,7 @@
                     <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
                         <div class="h-full rounded-full bg-brand transition-all" :style="`width: ${(viewedCount / total) * 100}%`"></div>
                     </div>
-                    <p class="mt-2 text-[10px] font-semibold text-white/50" x-show="!completed" x-cloak>Каждый слайд — не меньше 10 секунд. Вся презентация = 1 единица прогресса.</p>
+                    <p class="mt-2 text-[10px] font-semibold text-white/50" x-show="!completed" x-cloak>Каждый слайд — не меньше 15 секунд. Вся презентация = 1 единица прогресса.</p>
                     <p class="mt-2 text-[10px] font-semibold text-mint" x-show="completed" x-cloak>Презентация просмотрена: +1 единица прогресса.</p>
                 </div>
             </div>
@@ -205,7 +205,7 @@
                     <div class="min-w-0 flex-1">
                         <p class="text-xs font-extrabold">{{ $article->hasSlides() ? 'Презентация просмотрена' : ($article->hasTrackableVideo() ? 'Видео просмотрено' : 'Статья прочитана') }}</p>
                         <p class="mt-0.5 text-[10px] leading-relaxed text-muted">
-                            {{ $article->hasSlides() ? 'Все слайды просмотрены — по 10 секунд каждый.' : ($article->hasTrackableVideo() ? 'Нужно 80% видео и включённый звук.' : 'Первый шаг засчитывается после открытия материала.') }}
+                            {{ $article->hasSlides() ? 'Все слайды просмотрены — по 15 секунд каждый.' : ($article->hasTrackableVideo() ? 'Нужно 80% видео и включённый звук.' : 'Первый шаг засчитывается после открытия материала.') }}
                         </p>
                     </div>
                     <span class="text-[11px] font-extrabold" :class="firstDone ? 'text-mint-ink' : 'text-muted'" x-text="firstDone ? '+1' : '0/1'">{{ $firstDone ? '+1' : '0/1' }}</span>

@@ -86,7 +86,7 @@ class TheoryController extends Controller
         $key = (string) $data['index'];
         $viewed[$key] = max((int) ($viewed[$key] ?? 0), (int) $data['seconds']);
 
-        $minimum = 10;
+        $minimum = 15;
         $completed = true;
 
         for ($i = 0; $i < $total; $i++) {

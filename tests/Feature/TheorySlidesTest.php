@@ -13,12 +13,12 @@ class TheorySlidesTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_every_slide_needs_ten_seconds_before_the_step_is_counted(): void
+    public function test_every_slide_needs_fifteen_seconds_before_the_step_is_counted(): void
     {
         [$user, $article] = $this->makeArticle();
 
         $this->actingAs($user)
-            ->postJson(route('theory.slides', $article), ['index' => 0, 'seconds' => 10])
+            ->postJson(route('theory.slides', $article), ['index' => 0, 'seconds' => 15])
             ->assertOk()
             ->assertJson(['completed' => false, 'viewed' => 1, 'total' => 2]);
 
@@ -27,7 +27,7 @@ class TheorySlidesTest extends TestCase
         $this->assertFalse($article->firstStepCompleted($progress));
 
         $this->actingAs($user)
-            ->postJson(route('theory.slides', $article), ['index' => 1, 'seconds' => 10])
+            ->postJson(route('theory.slides', $article), ['index' => 1, 'seconds' => 15])
             ->assertOk()
             ->assertJson(['completed' => true, 'viewed' => 2]);
 
@@ -54,7 +54,7 @@ class TheorySlidesTest extends TestCase
         [$user, $article] = $this->makeArticle();
 
         $this->actingAs($user)
-            ->postJson(route('theory.slides', $article), ['index' => 5, 'seconds' => 10])
+            ->postJson(route('theory.slides', $article), ['index' => 5, 'seconds' => 15])
             ->assertStatus(422);
     }
 
@@ -63,7 +63,7 @@ class TheorySlidesTest extends TestCase
         [$user, $article] = $this->makeArticle(slides: null);
 
         $this->actingAs($user)
-            ->postJson(route('theory.slides', $article), ['index' => 0, 'seconds' => 10])
+            ->postJson(route('theory.slides', $article), ['index' => 0, 'seconds' => 15])
             ->assertNotFound();
     }
 
@@ -80,9 +80,9 @@ class TheorySlidesTest extends TestCase
 
         $article = TheoryArticle::query()->create([
             'slug' => 'what-is-ei-slides',
-            'title' => 'Что такое ЭИ',
-            'excerpt' => 'Тест',
-            'body' => 'Тест',
+            'title' => 'Р§С‚Рѕ С‚Р°РєРѕРµ Р­Р',
+            'excerpt' => 'РўРµСЃС‚',
+            'body' => 'РўРµСЃС‚',
             'slides' => $slides,
             'reading_minutes' => 5,
             'sort' => 1,

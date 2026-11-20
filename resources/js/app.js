@@ -698,7 +698,7 @@ document.addEventListener('alpine:init', () => {
         slides: options.slides ?? [],
         index: 0,
         viewed: options.viewed ?? {},
-        minSeconds: Number(options.minSeconds ?? 10),
+        minSeconds: Number(options.minSeconds ?? 15),
         seconds: 0,
         completed: options.completed === true,
         timer: null,

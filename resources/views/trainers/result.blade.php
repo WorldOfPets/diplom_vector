@@ -5,6 +5,7 @@
 @php
     $percent = (int) round($attempt->percent);
     $passed = (bool) $attempt->passed;
+    $trainerFeedback = $attempt->trainerFeedback;
     $chartConfig = null;
 
     if ($chart) {
@@ -202,53 +203,47 @@
                 @endif
             </section>
 
-            <section class="card p-5 sm:p-6">
+            <section id="feedback" class="card p-5 sm:p-6" x-data="{ rating: {{ (int) old('rating', $trainerFeedback?->rating ?? 0) }} }">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <p class="section-eyebrow">Рефлексия</p>
-                        <h2 class="mt-1 text-lg font-extrabold">Чемодан. Корзина. Мясорубка</h2>
-                        <p class="mt-1 text-xs leading-relaxed text-muted">Одна минута, чтобы забрать опыт и не тащить лишнее.</p>
+                        <p class="section-eyebrow">Обратная связь</p>
+                        <h2 class="mt-1 text-lg font-extrabold">Оцените упражнение</h2>
+                        <p class="mt-1 text-xs leading-relaxed text-muted">Оценка уходит методисту и помогает улучшать тренажёры. Если поставите меньше трёх звёзд — расскажите, что исправить.</p>
                     </div>
                 </div>
 
-                @php $reflection = $attempt->reflection; @endphp
-
-                @if($reflection)
+                @if($trainerFeedback)
                     <div class="mt-4 rounded-2xl border border-mint/20 bg-mint-soft/50 p-4">
                         <p class="text-sm font-bold text-mint-ink">
-                            @if($reflection->choice === 'suitcase') 🧳 Забираю с собой
-                            @elseif($reflection->choice === 'basket') 🗑️ В корзину
-                            @else ⚙️ Прокрутить ещё
-                            @endif
+                            Спасибо за отзыв · {{ $trainerFeedback->rating }} из 5
+                            <span class="ml-1 tracking-[0.12em] text-amber-ink">{{ str_repeat('★', $trainerFeedback->rating) }}<span class="text-mint-ink/30">{{ str_repeat('★', 5 - $trainerFeedback->rating) }}</span></span>
                         </p>
-                        @if($reflection->note)
-                            <p class="mt-1 text-xs leading-relaxed text-mint-ink/80">{{ $reflection->note }}</p>
+                        @if($trainerFeedback->comment)
+                            <p class="mt-1 text-xs leading-relaxed text-mint-ink/80">{{ $trainerFeedback->comment }}</p>
                         @endif
                         <p class="mt-2 text-[10px] font-semibold text-mint-ink/50">Можно изменить, отправив форму ниже.</p>
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('reflections.store', $attempt) }}" class="mt-4 space-y-3">
+                <form method="POST" action="{{ route('trainer-feedback.store', $attempt) }}" class="mt-4 space-y-3">
                     @csrf
-                    <div class="grid gap-2 sm:grid-cols-3">
-                        <label class="cursor-pointer rounded-2xl border border-line bg-surface p-3 transition hover:border-brand/30">
-                            <input type="radio" name="choice" value="suitcase" class="h-4 w-4 text-brand" @checked($reflection?->choice === 'suitcase') required>
-                            <span class="mt-2 block text-sm font-bold">🧳 Забираю</span>
-                            <span class="mt-0.5 block text-[10px] text-muted">Применю в жизни</span>
-                        </label>
-                        <label class="cursor-pointer rounded-2xl border border-line bg-surface p-3 transition hover:border-brand/30">
-                            <input type="radio" name="choice" value="basket" class="h-4 w-4 text-brand" @checked($reflection?->choice === 'basket')>
-                            <span class="mt-2 block text-sm font-bold">🗑️ В корзину</span>
-                            <span class="mt-0.5 block text-[10px] text-muted">Отпускаю негатив</span>
-                        </label>
-                        <label class="cursor-pointer rounded-2xl border border-line bg-surface p-3 transition hover:border-brand/30">
-                            <input type="radio" name="choice" value="mincer" class="h-4 w-4 text-brand" @checked($reflection?->choice === 'mincer')>
-                            <span class="mt-2 block text-sm font-bold">⚙️ Прокрутить</span>
-                            <span class="mt-0.5 block text-[10px] text-muted">Вернусь ещё раз</span>
-                        </label>
+
+                    <div class="flex flex-wrap items-center gap-1" role="radiogroup" aria-label="Оценка упражнения">
+                        @for($i = 1; $i <= 5; $i++)
+                            <label class="cursor-pointer p-0.5">
+                                <input type="radio" name="rating" value="{{ $i }}" class="peer sr-only" x-model.number="rating" @checked((int) old('rating', $trainerFeedback?->rating ?? 0) === $i) required>
+                                <span class="text-[30px] leading-none transition" :class="rating >= {{ $i }} ? 'text-amber' : 'text-line hover:text-amber/60'">★</span>
+                            </label>
+                        @endfor
+                        <span class="ml-2 text-xs font-bold text-muted" x-text="rating ? rating + ' из 5' : 'Выберите оценку'"></span>
                     </div>
-                    <textarea name="note" rows="2" class="textarea" placeholder="Короткая заметка (необязательно)">{{ $reflection?->note }}</textarea>
-                    <button type="submit" class="btn-secondary w-full py-2.5 text-xs">Сохранить рефлексию</button>
+
+                    <div x-cloak class="space-y-2" :class="rating > 0 && rating < 3 ? '' : 'hidden'">
+                        <label class="label" for="comment">Что не понравилось и что можно сделать лучше?</label>
+                        <textarea id="comment" name="comment" rows="3" class="textarea" :required="rating > 0 && rating < 3" placeholder="Например: непонятно, что делать на втором шаге">{{ old('comment', $trainerFeedback?->comment) }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary w-full py-2.5 text-xs">Отправить отзыв</button>
                 </form>
             </section>
         </div>
@@ -259,11 +254,19 @@
                 @if($next)
                     <h2 class="mt-1 text-lg font-extrabold">{{ $next->title }}</h2>
                     <p class="mt-1 text-xs leading-relaxed text-muted">{{ $next->module->title }} · {{ $next->duration_min }} минут</p>
-                    <a href="{{ route('trainers.show', $next) }}" class="btn-primary mt-4 w-full py-2.5 text-xs">Следующий тренажёр</a>
+                    @if($trainerFeedback)
+                        <a href="{{ route('trainers.show', $next) }}" class="btn-primary mt-4 w-full py-2.5 text-xs">Следующий тренажёр</a>
+                    @else
+                        <a href="#feedback" class="btn-primary mt-4 w-full py-2.5 text-xs">Сначала оцените упражнение</a>
+                    @endif
                 @else
                     <h2 class="mt-1 text-lg font-extrabold">Это последний тренажёр</h2>
                     <p class="mt-1 text-xs leading-relaxed text-muted">Посмотрите итоговую динамику в профиле.</p>
-                    <a href="{{ route('profile.index') }}" class="btn-primary mt-4 w-full py-2.5 text-xs">Мои результаты</a>
+                    @if($trainerFeedback)
+                        <a href="{{ route('profile.index') }}" class="btn-primary mt-4 w-full py-2.5 text-xs">Мои результаты</a>
+                    @else
+                        <a href="#feedback" class="btn-primary mt-4 w-full py-2.5 text-xs">Сначала оцените упражнение</a>
+                    @endif
                 @endif
                 <a href="{{ route('modules.show', $trainer->module) }}" class="btn-ghost mt-2 w-full py-2 text-xs">Вернуться в модуль</a>
             </div>

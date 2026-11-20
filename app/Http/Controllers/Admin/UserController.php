@@ -16,6 +16,7 @@ use App\Models\ShortView;
 use App\Models\TestAttempt;
 use App\Models\TheoryProgress;
 use App\Models\TrainerAttempt;
+use App\Models\TrainerFeedback;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -109,6 +110,7 @@ class UserController extends Controller
     public function reset(User $user): RedirectResponse
     {
         DB::transaction(function () use ($user): void {
+            TrainerFeedback::query()->where('user_id', $user->id)->delete();
             TrainerAttempt::query()->where('user_id', $user->id)->delete();
             TestAttempt::query()->where('user_id', $user->id)->delete();
             ShortView::query()->where('user_id', $user->id)->delete();

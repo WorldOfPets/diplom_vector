@@ -26,6 +26,7 @@ use App\Http\Controllers\ShortController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\TheoryController;
 use App\Http\Controllers\TrainerController;
+use App\Http\Controllers\TrainerFeedbackController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -65,6 +66,7 @@ Route::middleware(['auth', 'onboarded'])->group(function (): void {
     Route::post('/trainers/{trainer:slug}', [TrainerController::class, 'submit'])->middleware('throttle:30,1')->name('trainers.submit');
     Route::get('/attempts/{attempt}', [TrainerController::class, 'result'])->name('trainers.result');
     Route::post('/attempts/{attempt}/reflection', [ReflectionController::class, 'store'])->middleware('throttle:20,1')->name('reflections.store');
+    Route::post('/attempts/{attempt}/feedback', [TrainerFeedbackController::class, 'store'])->middleware('throttle:20,1')->name('trainer-feedback.store');
 
     Route::get('/diagnostics', [TestController::class, 'index'])->name('tests.index');
     Route::get('/diagnostics/{test:slug}', [TestController::class, 'show'])->name('tests.show');

@@ -134,7 +134,7 @@
 </main>
 
 <div x-data="{ more: false, toggleMore(open) { this.more = open; if (this.$refs.moreSheet) { this.$refs.moreSheet.style.display = open ? 'block' : 'none'; } } }">
-<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-surface/95 px-2 pt-1.5 pb-[max(0.25rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden" aria-label="Мобильная навигация">
+<nav data-mobile-nav class="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-surface px-2 pt-1.5 pb-[max(0.25rem,env(safe-area-inset-bottom))] lg:hidden" aria-label="Мобильная навигация">
     <div class="mx-auto grid max-w-md grid-cols-5">
         @foreach($mobilePrimary as $item)
             @php $active = request()->routeIs($item['pattern']); @endphp

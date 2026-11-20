@@ -37,6 +37,62 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     });
 }
 
+// Chrome на Android иногда оставляет fixed-слой в размерах вьюпорта, которые
+// были до ухода PWA в фон (например, после клавиатуры в дневнике). Пересборка
+// layout возвращает нижнее меню к реальному низу экрана.
+const resyncMobileNav = () => {
+    const nav = document.querySelector('[data-mobile-nav]');
+
+    if (!nav) {
+        return;
+    }
+
+    nav.style.position = 'static';
+    void nav.offsetHeight;
+    nav.style.position = '';
+};
+
+let navResyncQueued = false;
+
+const scheduleNavResync = () => {
+    if (navResyncQueued) {
+        return;
+    }
+
+    navResyncQueued = true;
+
+    requestAnimationFrame(() => {
+        navResyncQueued = false;
+        resyncMobileNav();
+    });
+};
+
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        scheduleNavResync();
+    }
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        return;
+    }
+
+    scheduleNavResync();
+    setTimeout(scheduleNavResync, 300);
+});
+
+window.visualViewport?.addEventListener('resize', scheduleNavResync);
+
+let navResizeTimer = null;
+
+window.addEventListener('resize', () => {
+    clearTimeout(navResizeTimer);
+    navResizeTimer = setTimeout(scheduleNavResync, 250);
+});
+
+window.addEventListener('orientationchange', () => setTimeout(scheduleNavResync, 200));
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('pwaInstall', () => ({
         deferredPrompt: null,
